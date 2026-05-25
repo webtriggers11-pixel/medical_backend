@@ -51,6 +51,9 @@ export class AuthService {
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     const otpResendAllowedAt = new Date(Date.now() + 60 * 1000);
 
+    // Send email first — only persist if delivery succeeds
+    await this.mailService.sendOtp(dto.email, otp);
+
     await this.prisma.user.upsert({
       where: { email: dto.email },
       create: {
@@ -65,8 +68,6 @@ export class AuthService {
         otpResendAllowedAt,
       },
     });
-
-    await this.mailService.sendOtp(dto.email, otp);
 
     return {
       message: 'OTP sent to your email',
