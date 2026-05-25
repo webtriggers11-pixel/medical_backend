@@ -4,8 +4,8 @@ export declare class UsersController {
     private usersService;
     constructor(usersService: UsersService);
     findAll(): Promise<{
-        email: string;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         isEmailVerified: boolean;
@@ -13,8 +13,8 @@ export declare class UsersController {
         updatedAt: Date;
     }[]>;
     findMe(user: any): Promise<{
-        email: string;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         isEmailVerified: boolean;
@@ -22,8 +22,8 @@ export declare class UsersController {
         updatedAt: Date;
     }>;
     findOne(id: string): Promise<{
-        email: string;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         isEmailVerified: boolean;
@@ -31,8 +31,8 @@ export declare class UsersController {
         updatedAt: Date;
     }>;
     create(dto: CreateUserDto): Promise<{
-        email: string;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         isEmailVerified: boolean;

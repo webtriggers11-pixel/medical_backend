@@ -22,8 +22,8 @@ export declare class AuthService {
     completeRegister(userId: string, dto: CompleteRegisterDto): Promise<{
         accessToken: string;
         user: {
-            email: string;
             id: string;
+            email: string;
             role: import("@prisma/client").$Enums.Role;
             isActive: boolean;
             isEmailVerified: boolean;
@@ -42,8 +42,8 @@ export declare class AuthService {
         };
     }>;
     getMe(userId: string): Promise<{
-        email: string;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
         isEmailVerified: boolean;
