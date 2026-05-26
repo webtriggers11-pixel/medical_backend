@@ -3,8 +3,8 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const SEED_USERS = [
-  { email: 'superadmin@medisync.com', password: 'SuperAdmin@123', role: 'SUPER_ADMIN' as const },
   { email: 'admin@medisync.com', password: 'Admin@123', role: 'ADMIN' as const },
+  { email: 'user@medisync.com', password: 'User@123', role: 'USER' as const },
 ];
 
 @Injectable()

@@ -23,8 +23,8 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ summary: 'Get all users (ADMIN+)' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Get all users (ADMIN only)' })
   @ApiResponse({ status: 200, description: 'List of users' })
   findAll() {
     return this.usersService.findAll();
@@ -38,8 +38,8 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @ApiOperation({ summary: 'Get user by ID (ADMIN+)' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Get user by ID (ADMIN only)' })
   @ApiResponse({ status: 200, description: 'User found' })
   @ApiResponse({ status: 404, description: 'User not found' })
   findOne(@Param('id') id: string) {
@@ -47,8 +47,8 @@ export class UsersController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Create user (SUPER_ADMIN only)' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Create user (ADMIN only)' })
   @ApiResponse({ status: 201, description: 'User created' })
   create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);

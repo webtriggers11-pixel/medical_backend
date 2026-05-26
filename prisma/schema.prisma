@@ -8,10 +8,19 @@ datasource db {
 }
 
 enum Role {
-  SUPER_ADMIN
   ADMIN
-  MANAGER
   USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum CandidateType {
+  EXISTING
+  NEW
 }
 
 model User {
@@ -27,5 +36,31 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
+  candidates           Candidate[] @relation("CandidateCreatedBy")
+
   @@map("users")
+}
+
+model Candidate {
+  id            String        @id @default(cuid())
+  zone          String?
+  city          String?
+  store         String?
+  name          String
+  employeeCode  String
+  mobileNumber  String
+  gender        Gender
+  age           Int
+  candidateType CandidateType
+  dateOfJoining DateTime
+  pincode       String?
+  email         String?
+  panNumber     String?
+  createdById   String?
+  createdBy     User?         @relation("CandidateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([createdById])
+  @@map("candidates")
 }
