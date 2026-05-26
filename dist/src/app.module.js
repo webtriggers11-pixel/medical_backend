@@ -14,6 +14,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const mail_module_1 = require("./modules/mail/mail.module");
 const health_module_1 = require("./modules/health/health.module");
+const seed_module_1 = require("./modules/seed/seed.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -26,6 +27,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             health_module_1.HealthModule,
+            seed_module_1.SeedModule,
         ],
     })
 ], AppModule);

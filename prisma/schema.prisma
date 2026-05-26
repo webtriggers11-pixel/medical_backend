@@ -7,6 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Auth enums ───────────────────────────────────────────────
 enum Role {
   SUPER_ADMIN
   ADMIN
@@ -14,18 +15,363 @@ enum Role {
   USER
 }
 
+// ─── Setup enums ──────────────────────────────────────────────
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CheckupFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+}
+
+enum ZoneStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CityStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ─── Lab / Panel enums ────────────────────────────────────────
+enum LabStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PanelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ─── Candidate / Booking enums ────────────────────────────────
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum CandidateType {
+  NEW_JOINER
+  EXISTING
+  ANNUAL
+}
+
+enum BookingStatus {
+  APPOINTMENT_REQUESTED
+  SCHEDULED
+  VISITED
+  REPORT_UPLOADED
+  FIT
+  UNFIT
+  CANCELLED
+}
+
+enum FitnessStatus {
+  FIT
+  UNFIT
+  HOLD
+}
+
+// ─── Notification enums ───────────────────────────────────────
+enum NotificationType {
+  OTP
+  BOOKING_CONFIRMATION
+  REPORT_READY
+  REMINDER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  PENDING
+}
+
+// ─── Auth ─────────────────────────────────────────────────────
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  password             String?
-  role                 Role      @default(USER)
-  isActive             Boolean   @default(true)
-  isEmailVerified      Boolean   @default(false)
-  otpCode              String?
-  otpExpiresAt         DateTime?
-  otpResendAllowedAt   DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String?
+  mobile             String?
+  password           String?
+  role               Role      @default(USER)
+  companyId          String?
+  isActive           Boolean   @default(true)
+  isEmailVerified    Boolean   @default(false)
+  otpCode            String?
+  otpExpiresAt       DateTime?
+  otpResendAllowedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@map("users")
+}
+
+// ─── Setup — Company hierarchy ────────────────────────────────
+model Company {
+  id                String          @id @default(cuid())
+  name              String
+  code              String          @unique
+  industryType      String
+  gstNumber         String?
+  contactName       String
+  contactMobile     String
+  billingEmail      String
+  checkupFrequency  CheckupFrequency
+  status            CompanyStatus   @default(ACTIVE)
+  createdAt         DateTime        @default(now())
+  createdBy         String?
+  deletedAt         DateTime?
+  deletedBy         String?
+
+  zones             Zone[]
+  cities            City[]
+  stores            Store[]
+  candidates        Candidate[]
+  bookings          Booking[]
+  companyPricing    CompanyPanelPricing[]
+
+  @@map("companies")
+}
+
+model Zone {
+  id        String     @id @default(cuid())
+  companyId String
+  name      String
+  status    ZoneStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  createdBy String?
+  deletedAt DateTime?
+  deletedBy String?
+
+  company   Company    @relation(fields: [companyId], references: [id])
+  cities    City[]
+
+  @@map("zones")
+}
+
+model City {
+  id        String     @id @default(cuid())
+  zoneId    String
+  companyId String
+  name      String
+  status    CityStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  createdBy String?
+  deletedAt DateTime?
+  deletedBy String?
+
+  zone      Zone       @relation(fields: [zoneId], references: [id])
+  company   Company    @relation(fields: [companyId], references: [id])
+  stores    Store[]
+
+  @@map("cities")
+}
+
+model Store {
+  id              String      @id @default(cuid())
+  companyId       String
+  cityId          String
+  storeCode       String
+  name            String
+  address         String
+  storeHeadName   String
+  storeHeadMobile String
+  email           String?
+  status          StoreStatus @default(ACTIVE)
+  createdAt       DateTime    @default(now())
+  createdBy       String?
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  company         Company     @relation(fields: [companyId], references: [id])
+  city            City        @relation(fields: [cityId], references: [id])
+  candidates      Candidate[]
+
+  @@unique([companyId, storeCode])
+  @@map("stores")
+}
+
+// ─── Lab & Panel ──────────────────────────────────────────────
+model Lab {
+  id             String    @id @default(cuid())
+  name           String
+  contactName    String
+  contactMobile  String
+  email          String
+  serviceCities  Json      @default("[]")
+  status         LabStatus @default(ACTIVE)
+  createdAt      DateTime  @default(now())
+  createdBy      String?
+  deletedAt      DateTime?
+  deletedBy      String?
+
+  bundledTests   LabBundledTest[]
+  panels         Panel[]
+  bookings       Booking[]
+
+  @@map("labs")
+}
+
+model LabBundledTest {
+  id             String   @id @default(cuid())
+  labId          String
+  name           String
+  testsIncluded  Json     @default("[]")
+  defaultTiming  String?
+  suggestedMrp   Decimal  @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  createdBy      String?
+  deletedAt      DateTime?
+  deletedBy      String?
+
+  lab            Lab      @relation(fields: [labId], references: [id])
+  panels         Panel[]
+
+  @@map("lab_bundled_tests")
+}
+
+model Panel {
+  id             String      @id @default(cuid())
+  labId          String
+  bundledTestId  String
+  name           String
+  timing         String?
+  mrp            Decimal     @db.Decimal(10, 2)
+  costToVendor   Decimal     @db.Decimal(10, 2)
+  labContact     String?
+  status         PanelStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  createdBy      String?
+  deletedAt      DateTime?
+  deletedBy      String?
+
+  lab            Lab            @relation(fields: [labId], references: [id])
+  bundledTest    LabBundledTest @relation(fields: [bundledTestId], references: [id])
+  companyPricing CompanyPanelPricing[]
+  bookings       Booking[]
+
+  @@map("panels")
+}
+
+model CompanyPanelPricing {
+  id               String   @id @default(cuid())
+  companyId        String
+  panelId          String
+  costToClient     Decimal  @db.Decimal(10, 2)
+  discountAfterN   Int      @default(0)
+  discountedPrice  Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now())
+  createdBy        String?
+  deletedAt        DateTime?
+  deletedBy        String?
+
+  company          Company  @relation(fields: [companyId], references: [id])
+  panel            Panel    @relation(fields: [panelId], references: [id])
+
+  @@unique([companyId, panelId])
+  @@map("company_panel_pricing")
+}
+
+// ─── Candidates & Bookings ────────────────────────────────────
+model Candidate {
+  id            String        @id @default(cuid())
+  storeId       String
+  companyId     String
+  name          String
+  employeeCode  String
+  mobile        String
+  gender        Gender
+  age           Int
+  doj           DateTime?
+  candidateType CandidateType @default(NEW_JOINER)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  createdBy     String?
+  deletedAt     DateTime?
+  deletedBy     String?
+
+  store         Store         @relation(fields: [storeId], references: [id])
+  company       Company       @relation(fields: [companyId], references: [id])
+  bookings      Booking[]
+  reports       Report[]
+
+  @@map("candidates")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  candidateId     String
+  panelId         String
+  labId           String
+  companyId       String
+  reqDate         DateTime
+  scheduledDate   DateTime?
+  visitTime       DateTime?
+  status          BookingStatus @default(APPOINTMENT_REQUESTED)
+  amountCharged   Decimal       @db.Decimal(10, 2)
+  amountToVendor  Decimal       @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now())
+  createdBy       String?
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  candidate       Candidate     @relation(fields: [candidateId], references: [id])
+  panel           Panel         @relation(fields: [panelId], references: [id])
+  lab             Lab           @relation(fields: [labId], references: [id])
+  company         Company       @relation(fields: [companyId], references: [id])
+  report          Report?
+
+  @@map("bookings")
+}
+
+model Report {
+  id             String        @id @default(cuid())
+  bookingId      String        @unique
+  candidateId    String
+  reportUrl      String
+  fitnessStatus  FitnessStatus
+  uploadedAt     DateTime      @default(now())
+  uploadedBy     String
+  remarks        String?
+  createdAt      DateTime      @default(now())
+  createdBy      String?
+  deletedAt      DateTime?
+  deletedBy      String?
+
+  booking        Booking       @relation(fields: [bookingId], references: [id])
+  candidate      Candidate     @relation(fields: [candidateId], references: [id])
+
+  @@map("reports")
+}
+
+// ─── System ───────────────────────────────────────────────────
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  message   String
+  sentAt    DateTime?
+  status    NotificationStatus  @default(PENDING)
+  createdAt DateTime            @default(now())
+  createdBy String?
+
+  @@map("notifications")
 }
