@@ -51,6 +51,7 @@ const USER_SELECT = {
     email: true,
     role: true,
     isActive: true,
+    isDeleted: true,
     isEmailVerified: true,
     createdAt: true,
     updatedAt: true,
@@ -61,7 +62,11 @@ let UsersService = class UsersService {
         this.prisma = prisma;
     }
     async findAll() {
-        return this.prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'desc' } });
+        return this.prisma.user.findMany({
+            where: { isDeleted: false },
+            select: USER_SELECT,
+            orderBy: { createdAt: 'desc' },
+        });
     }
     async findById(id) {
         const user = await this.prisma.user.findUnique({ where: { id }, select: USER_SELECT });

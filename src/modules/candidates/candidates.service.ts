@@ -22,6 +22,8 @@ const CANDIDATE_SELECT = {
   pincode: true,
   email: true,
   panNumber: true,
+  isActive: true,
+  isDeleted: true,
   createdById: true,
   createdAt: true,
   updatedAt: true,
@@ -39,6 +41,7 @@ export class CandidatesService {
 
   findAll() {
     return this.prisma.candidate.findMany({
+      where: { isDeleted: false },
       select: CANDIDATE_SELECT,
       orderBy: { createdAt: 'desc' },
     });

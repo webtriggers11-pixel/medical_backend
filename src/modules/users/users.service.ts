@@ -8,6 +8,7 @@ const USER_SELECT = {
   email: true,
   role: true,
   isActive: true,
+  isDeleted: true,
   isEmailVerified: true,
   createdAt: true,
   updatedAt: true,
@@ -18,7 +19,11 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.user.findMany({ select: USER_SELECT, orderBy: { createdAt: 'desc' } });
+    return this.prisma.user.findMany({
+      where: { isDeleted: false },
+      select: USER_SELECT,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findById(id: string) {
