@@ -6,9 +6,11 @@ export declare class UsersController {
     findAll(): Promise<{
         id: string;
         email: string;
+        name: string | null;
+        mobile: string | null;
         role: import("@prisma/client").$Enums.Role;
+        companyId: string | null;
         isActive: boolean;
-        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -16,9 +18,11 @@ export declare class UsersController {
     findMe(user: any): Promise<{
         id: string;
         email: string;
+        name: string | null;
+        mobile: string | null;
         role: import("@prisma/client").$Enums.Role;
+        companyId: string | null;
         isActive: boolean;
-        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -26,9 +30,11 @@ export declare class UsersController {
     findOne(id: string): Promise<{
         id: string;
         email: string;
+        name: string | null;
+        mobile: string | null;
         role: import("@prisma/client").$Enums.Role;
+        companyId: string | null;
         isActive: boolean;
-        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -36,9 +42,11 @@ export declare class UsersController {
     create(dto: CreateUserDto): Promise<{
         id: string;
         email: string;
+        name: string | null;
+        mobile: string | null;
         role: import("@prisma/client").$Enums.Role;
+        companyId: string | null;
         isActive: boolean;
-        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;

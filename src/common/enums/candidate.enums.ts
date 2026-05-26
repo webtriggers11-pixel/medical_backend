@@ -5,6 +5,7 @@ export enum Gender {
 }
 
 export enum CandidateType {
+  NEW_JOINER = 'NEW_JOINER',
   EXISTING = 'EXISTING',
-  NEW = 'NEW',
+  ANNUAL = 'ANNUAL',
 }

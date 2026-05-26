@@ -13,7 +13,7 @@ import { Role } from '../../common/enums/role.enum';
 export class CityService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateCityDto, user: { sub: string; role: string; companyId?: string }) {
+  async create(dto: CreateCityDto, user: { id: string; role: string; companyId?: string }) {
     await this.assertCompanyAccess(dto.companyId, user);
 
     const zone = await this.prisma.zone.findFirst({
@@ -26,22 +26,13 @@ export class CityService {
         companyId: dto.companyId,
         zoneId: dto.zoneId,
         name: dto.name,
-        createdBy: user.sub,
+        createdBy: user.id,
       },
     });
   }
 
-  async findAll(
-    zoneId: string,
-    user: { sub: string; role: string; companyId?: string },
-  ) {
-    const zone = await this.prisma.zone.findFirst({
-      where: { id: zoneId, deletedAt: null },
-    });
-    if (!zone) throw new NotFoundException('Zone not found');
-
-    await this.assertCompanyAccess(zone.companyId, user);
-
+  // Read-only listing is open to any authenticated user (candidate cascade).
+  async findAll(zoneId: string) {
     return this.prisma.city.findMany({
       where: { zoneId, deletedAt: null },
       orderBy: { createdAt: 'asc' },
@@ -52,7 +43,7 @@ export class CityService {
   async update(
     id: string,
     dto: UpdateCityDto,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const city = await this.findCityOrFail(id);
     await this.assertCompanyAccess(city.companyId, user);
@@ -60,7 +51,7 @@ export class CityService {
     return this.prisma.city.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
     const city = await this.findCityOrFail(id);
     await this.assertCompanyAccess(city.companyId, user);
 
@@ -75,7 +66,7 @@ export class CityService {
 
     return this.prisma.city.update({
       where: { id },
-      data: { deletedAt: new Date(), deletedBy: user.sub, status: 'INACTIVE' },
+      data: { deletedAt: new Date(), deletedBy: user.id, status: 'INACTIVE' },
     });
   }
 
@@ -87,14 +78,14 @@ export class CityService {
 
   private async assertCompanyAccess(
     companyId: string,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, deletedAt: null },
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    if (user.role !== Role.SUPER_ADMIN && companyId !== user.companyId) {
+    if (user.role !== Role.ADMIN && companyId !== user.companyId) {
       throw new ForbiddenException('Access denied');
     }
   }

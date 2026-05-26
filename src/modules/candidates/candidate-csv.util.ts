@@ -5,16 +5,14 @@
 import { CandidateType, Gender } from '../../common/enums/candidate.enums';
 
 export const CANDIDATE_CSV_COLUMNS = [
-  'zone',
-  'city',
-  'store',
+  'storeId',
   'name',
   'employeeCode',
-  'mobileNumber',
+  'mobile',
   'gender',
   'age',
   'candidateType',
-  'dateOfJoining',
+  'doj',
   'pincode',
   'email',
   'panNumber',
@@ -24,30 +22,21 @@ type Column = (typeof CANDIDATE_CSV_COLUMNS)[number];
 export type CandidateCsvRow = Record<Column, string>;
 
 export interface NormalizedCandidate {
-  zone: string | null;
-  city: string | null;
-  store: string | null;
+  storeId: string;
   name: string;
   employeeCode: string;
-  mobileNumber: string;
+  mobile: string;
   gender: Gender;
   age: number;
   candidateType: CandidateType;
-  dateOfJoining: Date;
-  pincode: string | null;
-  email: string | null;
+  doj: Date;
+  pincode: string;
+  email: string;
   panNumber: string | null;
 }
 
-const REQUIRED: Column[] = [
-  'name',
-  'employeeCode',
-  'mobileNumber',
-  'gender',
-  'age',
-  'candidateType',
-  'dateOfJoining',
-];
+// Every column is required for bulk upload except panNumber.
+const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter((c) => c !== 'panNumber');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -121,31 +110,26 @@ export function parseCandidateCsv(content: string): CandidateCsvRow[] {
   return rows;
 }
 
-/** Parse a date cell that may be ISO (YYYY-MM-DD) or DD/MM/YYYY. Returns null if invalid. */
-function parseDate(value: string): Date | null {
+/** Parse a date cell (ISO YYYY-MM-DD or DD/MM/YYYY) at UTC midnight. null if blank, undefined if invalid. */
+function parseDate(value: string): Date | null | undefined {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  // DD/MM/YYYY or DD-MM-YYYY — build at UTC midnight to keep the calendar date stable.
   const dmy = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (dmy) {
     const [, d, m, y] = dmy;
     const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
-    return isNaN(date.getTime()) ? null : date;
+    return isNaN(date.getTime()) ? undefined : date;
   }
 
-  // YYYY-MM-DD — parsed by Date as UTC midnight already.
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     const date = new Date(trimmed);
-    return isNaN(date.getTime()) ? null : date;
+    return isNaN(date.getTime()) ? undefined : date;
   }
 
-  // Fallback: build from parts at UTC midnight so free-text dates don't shift.
   const parsed = new Date(trimmed);
-  if (isNaN(parsed.getTime())) return null;
-  return new Date(
-    Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
-  );
+  if (isNaN(parsed.getTime())) return undefined;
+  return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
 }
 
 /**
@@ -157,12 +141,14 @@ export function validateRow(
 ): { data: NormalizedCandidate } | { error: string } {
   const errors: string[] = [];
 
+  const storeId = row.storeId?.trim();
   const name = row.name?.trim();
   const employeeCode = row.employeeCode?.trim();
-  const mobileNumber = row.mobileNumber?.trim();
+  const mobile = row.mobile?.trim();
+  if (!storeId) errors.push('storeId is required');
   if (!name) errors.push('name is required');
   if (!employeeCode) errors.push('employeeCode is required');
-  if (!/^\d{10}$/.test(mobileNumber || '')) errors.push('mobileNumber must be 10 digits');
+  if (!/^\d{10}$/.test(mobile || '')) errors.push('mobile must be 10 digits');
 
   const gender = (row.gender || '').trim().toUpperCase();
   if (!Object.values(Gender).includes(gender as Gender)) {
@@ -176,17 +162,17 @@ export function validateRow(
 
   const candidateType = (row.candidateType || '').trim().toUpperCase();
   if (!Object.values(CandidateType).includes(candidateType as CandidateType)) {
-    errors.push('candidateType must be EXISTING or NEW');
+    errors.push('candidateType must be NEW_JOINER, EXISTING or ANNUAL');
   }
 
-  const dateOfJoining = parseDate(row.dateOfJoining || '');
-  if (!dateOfJoining) errors.push('dateOfJoining must be a valid date');
+  const doj = parseDate(row.doj || '');
+  if (!doj) errors.push('doj is required and must be a valid date');
 
   const pincode = row.pincode?.trim() || '';
-  if (pincode && !/^\d{6}$/.test(pincode)) errors.push('pincode must be 6 digits');
+  if (!/^\d{6}$/.test(pincode)) errors.push('pincode must be 6 digits');
 
   const email = row.email?.trim() || '';
-  if (email && !EMAIL_RE.test(email)) errors.push('email is invalid');
+  if (!EMAIL_RE.test(email)) errors.push('email is required and must be valid');
 
   const panNumber = (row.panNumber?.trim() || '').toUpperCase();
   if (panNumber && !PAN_RE.test(panNumber)) errors.push('panNumber is invalid');
@@ -197,18 +183,16 @@ export function validateRow(
 
   return {
     data: {
-      zone: row.zone?.trim() || null,
-      city: row.city?.trim() || null,
-      store: row.store?.trim() || null,
-      name,
-      employeeCode,
-      mobileNumber,
+      storeId: storeId as string,
+      name: name as string,
+      employeeCode: employeeCode as string,
+      mobile: mobile as string,
       gender: gender as Gender,
       age: ageNum,
       candidateType: candidateType as CandidateType,
-      dateOfJoining: dateOfJoining as Date,
-      pincode: pincode || null,
-      email: email || null,
+      doj: doj as Date,
+      pincode,
+      email,
       panNumber: panNumber || null,
     },
   };
@@ -218,15 +202,13 @@ export function validateRow(
 export function buildCandidateTemplate(): string {
   const header = CANDIDATE_CSV_COLUMNS.join(',');
   const example = [
-    'East',
-    'Guwahati',
-    'Semolina Kitchens Pvt. Ltd.',
+    'paste-store-id-here',
     'John Doe',
     'EMP1234',
     '9999999999',
     'MALE',
     '20',
-    'EXISTING',
+    'NEW_JOINER',
     '2026-05-22',
     '781001',
     'john.doe@example.com',

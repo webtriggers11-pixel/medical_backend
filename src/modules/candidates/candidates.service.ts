@@ -1,38 +1,22 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { CandidateType } from '../../common/enums/candidate.enums';
 import {
   buildCandidateTemplate,
   parseCandidateCsv,
   validateRow,
 } from './candidate-csv.util';
 
-const CANDIDATE_SELECT = {
-  id: true,
-  zone: true,
-  city: true,
-  store: true,
-  name: true,
-  employeeCode: true,
-  mobileNumber: true,
-  gender: true,
-  age: true,
-  candidateType: true,
-  dateOfJoining: true,
-  pincode: true,
-  email: true,
-  panNumber: true,
-  isActive: true,
-  isDeleted: true,
-  createdById: true,
-  createdAt: true,
-  updatedAt: true,
+const CANDIDATE_INCLUDE = {
+  store: { select: { id: true, name: true, storeCode: true } },
+  company: { select: { id: true, name: true, code: true } },
 };
 
 export interface BulkUploadResult {
   created: number;
   skipped: number;
-  errors: { row: number; mobileNumber: string; reason: string }[];
+  errors: { row: number; mobile: string; reason: string }[];
 }
 
 @Injectable()
@@ -41,20 +25,32 @@ export class CandidatesService {
 
   findAll() {
     return this.prisma.candidate.findMany({
-      where: { isDeleted: false },
-      select: CANDIDATE_SELECT,
+      where: { deletedAt: null },
+      include: CANDIDATE_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  create(dto: CreateCandidateDto, createdById?: string) {
+  async create(dto: CreateCandidateDto, userId?: string) {
+    const store = await this.resolveStore(dto.storeId);
+
     return this.prisma.candidate.create({
       data: {
-        ...dto,
-        dateOfJoining: new Date(dto.dateOfJoining),
-        createdById,
+        storeId: store.id,
+        companyId: store.companyId,
+        name: dto.name,
+        employeeCode: dto.employeeCode,
+        mobile: dto.mobile,
+        gender: dto.gender,
+        age: dto.age,
+        doj: new Date(dto.doj),
+        candidateType: dto.candidateType ?? CandidateType.NEW_JOINER,
+        pincode: dto.pincode,
+        email: dto.email,
+        panNumber: dto.panNumber ?? null,
+        createdBy: userId,
       },
-      select: CANDIDATE_SELECT,
+      include: CANDIDATE_INCLUDE,
     });
   }
 
@@ -62,10 +58,7 @@ export class CandidatesService {
     return buildCandidateTemplate();
   }
 
-  async bulkCreate(
-    fileContent: string,
-    createdById?: string,
-  ): Promise<BulkUploadResult> {
+  async bulkCreate(fileContent: string, userId?: string): Promise<BulkUploadResult> {
     let rows;
     try {
       rows = parseCandidateCsv(fileContent);
@@ -79,6 +72,7 @@ export class CandidatesService {
 
     const result: BulkUploadResult = { created: 0, skipped: 0, errors: [] };
     const seenMobiles = new Set<string>();
+    const storeCompanyCache = new Map<string, string | null>();
 
     for (let i = 0; i < rows.length; i++) {
       const rowNumber = i + 2; // +1 header, +1 for 1-based
@@ -88,31 +82,66 @@ export class CandidatesService {
         result.skipped++;
         result.errors.push({
           row: rowNumber,
-          mobileNumber: rows[i].mobileNumber || '(empty)',
+          mobile: rows[i].mobile || '(empty)',
           reason: validated.error,
         });
         continue;
       }
 
-      const candidate = validated.data;
+      const c = validated.data;
 
-      if (seenMobiles.has(candidate.mobileNumber)) {
+      if (seenMobiles.has(c.mobile)) {
         result.skipped++;
-        result.errors.push({
-          row: rowNumber,
-          mobileNumber: candidate.mobileNumber,
-          reason: 'Duplicate mobile number within file',
-        });
+        result.errors.push({ row: rowNumber, mobile: c.mobile, reason: 'Duplicate mobile within file' });
         continue;
       }
-      seenMobiles.add(candidate.mobileNumber);
+      seenMobiles.add(c.mobile);
+
+      // Resolve & cache the store's company; skip rows with an unknown store.
+      let companyId = storeCompanyCache.get(c.storeId);
+      if (companyId === undefined) {
+        const store = await this.prisma.store.findFirst({
+          where: { id: c.storeId, deletedAt: null },
+          select: { companyId: true },
+        });
+        companyId = store?.companyId ?? null;
+        storeCompanyCache.set(c.storeId, companyId);
+      }
+      if (!companyId) {
+        result.skipped++;
+        result.errors.push({ row: rowNumber, mobile: c.mobile, reason: `Unknown storeId "${c.storeId}"` });
+        continue;
+      }
 
       await this.prisma.candidate.create({
-        data: { ...candidate, createdById },
+        data: {
+          storeId: c.storeId,
+          companyId,
+          name: c.name,
+          employeeCode: c.employeeCode,
+          mobile: c.mobile,
+          gender: c.gender,
+          age: c.age,
+          doj: c.doj,
+          candidateType: c.candidateType,
+          pincode: c.pincode,
+          email: c.email,
+          panNumber: c.panNumber,
+          createdBy: userId,
+        },
       });
       result.created++;
     }
 
     return result;
+  }
+
+  private async resolveStore(storeId: string) {
+    const store = await this.prisma.store.findFirst({
+      where: { id: storeId, deletedAt: null },
+      select: { id: true, companyId: true },
+    });
+    if (!store) throw new NotFoundException(`Store "${storeId}" not found`);
+    return store;
   }
 }

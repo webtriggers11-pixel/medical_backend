@@ -13,26 +13,23 @@ import { Role } from '../../common/enums/role.enum';
 export class ZoneService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateZoneDto, user: { sub: string; role: string; companyId?: string }) {
+  async create(dto: CreateZoneDto, user: { id: string; role: string; companyId?: string }) {
     await this.assertCompanyAccess(dto.companyId, user);
 
     return this.prisma.zone.create({
       data: {
         companyId: dto.companyId,
         name: dto.name,
-        createdBy: user.sub,
+        createdBy: user.id,
       },
     });
   }
 
-  async findAll(
-    companyId: string,
-    user: { sub: string; role: string; companyId?: string },
-  ) {
-    await this.assertCompanyAccess(companyId, user);
-
+  // Read-only listing is open to any authenticated user so the candidate
+  // cascade (Zone → City → Store) can populate. companyId is optional.
+  async findAll(companyId?: string) {
     return this.prisma.zone.findMany({
-      where: { companyId, deletedAt: null },
+      where: { ...(companyId ? { companyId } : {}), deletedAt: null },
       orderBy: { createdAt: 'asc' },
       include: { _count: { select: { cities: true } } },
     });
@@ -41,7 +38,7 @@ export class ZoneService {
   async update(
     id: string,
     dto: UpdateZoneDto,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const zone = await this.findZoneOrFail(id);
     await this.assertCompanyAccess(zone.companyId, user);
@@ -49,7 +46,7 @@ export class ZoneService {
     return this.prisma.zone.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
     const zone = await this.findZoneOrFail(id);
     await this.assertCompanyAccess(zone.companyId, user);
 
@@ -64,7 +61,7 @@ export class ZoneService {
 
     return this.prisma.zone.update({
       where: { id },
-      data: { deletedAt: new Date(), deletedBy: user.sub, status: 'INACTIVE' },
+      data: { deletedAt: new Date(), deletedBy: user.id, status: 'INACTIVE' },
     });
   }
 
@@ -76,14 +73,14 @@ export class ZoneService {
 
   private async assertCompanyAccess(
     companyId: string,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, deletedAt: null },
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    if (user.role !== Role.SUPER_ADMIN && companyId !== user.companyId) {
+    if (user.role !== Role.ADMIN && companyId !== user.companyId) {
       throw new ForbiddenException('Access denied');
     }
   }

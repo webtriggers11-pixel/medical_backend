@@ -15,20 +15,10 @@ import {
 import { CandidateType, Gender } from '../../../common/enums/candidate.enums';
 
 export class CreateCandidateDto {
-  @ApiPropertyOptional({ example: 'East' })
+  @ApiProperty({ example: 'clr1store...', description: 'Store the candidate belongs to' })
   @IsString()
-  @IsOptional()
-  zone?: string;
-
-  @ApiPropertyOptional({ example: 'Guwahati' })
-  @IsString()
-  @IsOptional()
-  city?: string;
-
-  @ApiPropertyOptional({ example: 'Semolina Kitchens Pvt. Ltd.' })
-  @IsString()
-  @IsOptional()
-  store?: string;
+  @IsNotEmpty()
+  storeId: string;
 
   @ApiProperty({ example: 'John Doe' })
   @IsString()
@@ -41,8 +31,8 @@ export class CreateCandidateDto {
   employeeCode: string;
 
   @ApiProperty({ example: '9999999999' })
-  @Matches(/^\d{10}$/, { message: 'mobileNumber must be exactly 10 digits' })
-  mobileNumber: string;
+  @Matches(/^\d{10}$/, { message: 'mobile must be exactly 10 digits' })
+  mobile: string;
 
   @ApiProperty({ enum: Gender, example: Gender.MALE })
   @IsEnum(Gender, { message: 'gender must be MALE, FEMALE or OTHER' })
@@ -55,23 +45,23 @@ export class CreateCandidateDto {
   @Max(100, { message: 'age must be 100 or less' })
   age: number;
 
-  @ApiProperty({ enum: CandidateType, example: CandidateType.EXISTING })
-  @IsEnum(CandidateType, { message: 'candidateType must be EXISTING or NEW' })
+  @ApiProperty({ enum: CandidateType, example: CandidateType.NEW_JOINER })
+  @IsEnum(CandidateType, {
+    message: 'candidateType must be NEW_JOINER, EXISTING or ANNUAL',
+  })
   candidateType: CandidateType;
 
-  @ApiProperty({ example: '2026-05-22', description: 'ISO date (YYYY-MM-DD)' })
-  @IsISO8601({}, { message: 'dateOfJoining must be a valid date' })
-  dateOfJoining: string;
+  @ApiProperty({ example: '2026-05-22', description: 'Date of joining (ISO YYYY-MM-DD)' })
+  @IsISO8601({}, { message: 'doj must be a valid date' })
+  doj: string;
 
-  @ApiPropertyOptional({ example: '781001' })
-  @IsOptional()
+  @ApiProperty({ example: '781001' })
   @Matches(/^\d{6}$/, { message: 'pincode must be exactly 6 digits' })
-  pincode?: string;
+  pincode: string;
 
-  @ApiPropertyOptional({ example: 'john.doe@example.com' })
-  @IsOptional()
+  @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'email must be a valid email address' })
-  email?: string;
+  email: string;
 
   @ApiPropertyOptional({ example: 'ABCDE1234F' })
   @IsOptional()

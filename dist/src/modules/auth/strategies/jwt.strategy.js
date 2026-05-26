@@ -37,6 +37,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
                 id: true,
                 email: true,
                 role: true,
+                companyId: true,
                 isActive: true,
                 isEmailVerified: true,
             },

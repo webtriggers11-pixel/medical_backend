@@ -6,9 +6,11 @@ import { CreateUserDto } from './dto/create-user.dto';
 const USER_SELECT = {
   id: true,
   email: true,
+  name: true,
+  mobile: true,
   role: true,
+  companyId: true,
   isActive: true,
-  isDeleted: true,
   isEmailVerified: true,
   createdAt: true,
   updatedAt: true,
@@ -20,7 +22,6 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      where: { isDeleted: false },
       select: USER_SELECT,
       orderBy: { createdAt: 'desc' },
     });

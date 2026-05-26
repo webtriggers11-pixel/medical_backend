@@ -1,3 +1,8 @@
+-- Align DB to the full medical schema (companies/zones/cities/stores/labs/panels/bookings/reports/notifications),
+-- restructure candidates (storeId/companyId FKs) and users (name/mobile/companyId; drop isDeleted).
+-- Existing candidate test data is cleared so the new NOT NULL FK columns can be added.
+DELETE FROM "candidates";
+
 -- CreateEnum
 CREATE TYPE "CompanyStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 
@@ -20,12 +25,6 @@ CREATE TYPE "LabStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 CREATE TYPE "PanelStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 
 -- CreateEnum
-CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "CandidateType" AS ENUM ('NEW_JOINER', 'EXISTING', 'ANNUAL');
-
--- CreateEnum
 CREATE TYPE "BookingStatus" AS ENUM ('APPOINTMENT_REQUESTED', 'SCHEDULED', 'VISITED', 'REPORT_UPLOADED', 'FIT', 'UNFIT', 'CANCELLED');
 
 -- CreateEnum
@@ -40,8 +39,45 @@ CREATE TYPE "NotificationChannel" AS ENUM ('EMAIL', 'SMS', 'WHATSAPP');
 -- CreateEnum
 CREATE TYPE "NotificationStatus" AS ENUM ('SENT', 'FAILED', 'PENDING');
 
+-- AlterEnum
+BEGIN;
+CREATE TYPE "CandidateType_new" AS ENUM ('NEW_JOINER', 'EXISTING', 'ANNUAL');
+ALTER TABLE "candidates" ALTER COLUMN "candidateType" TYPE "CandidateType_new" USING ("candidateType"::text::"CandidateType_new");
+ALTER TYPE "CandidateType" RENAME TO "CandidateType_old";
+ALTER TYPE "CandidateType_new" RENAME TO "CandidateType";
+DROP TYPE "public"."CandidateType_old";
+COMMIT;
+
+-- DropForeignKey
+ALTER TABLE "candidates" DROP CONSTRAINT "candidates_createdById_fkey";
+
+-- DropIndex
+DROP INDEX "candidates_createdById_idx";
+
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "companyId" TEXT,
+ALTER TABLE "candidates" DROP COLUMN "city",
+DROP COLUMN "createdById",
+DROP COLUMN "dateOfJoining",
+DROP COLUMN "email",
+DROP COLUMN "isDeleted",
+DROP COLUMN "mobileNumber",
+DROP COLUMN "panNumber",
+DROP COLUMN "pincode",
+DROP COLUMN "store",
+DROP COLUMN "updatedAt",
+DROP COLUMN "zone",
+ADD COLUMN     "companyId" TEXT NOT NULL,
+ADD COLUMN     "createdBy" TEXT,
+ADD COLUMN     "deletedAt" TIMESTAMP(3),
+ADD COLUMN     "deletedBy" TEXT,
+ADD COLUMN     "doj" TIMESTAMP(3),
+ADD COLUMN     "mobile" TEXT NOT NULL,
+ADD COLUMN     "storeId" TEXT NOT NULL,
+ALTER COLUMN "candidateType" SET DEFAULT 'NEW_JOINER';
+
+-- AlterTable
+ALTER TABLE "users" DROP COLUMN "isDeleted",
+ADD COLUMN     "companyId" TEXT,
 ADD COLUMN     "mobile" TEXT,
 ADD COLUMN     "name" TEXT;
 
@@ -183,27 +219,6 @@ CREATE TABLE "company_panel_pricing" (
 );
 
 -- CreateTable
-CREATE TABLE "candidates" (
-    "id" TEXT NOT NULL,
-    "storeId" TEXT NOT NULL,
-    "companyId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "employeeCode" TEXT NOT NULL,
-    "mobile" TEXT NOT NULL,
-    "gender" "Gender" NOT NULL,
-    "age" INTEGER NOT NULL,
-    "doj" TIMESTAMP(3),
-    "candidateType" "CandidateType" NOT NULL DEFAULT 'NEW_JOINER',
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdBy" TEXT,
-    "deletedAt" TIMESTAMP(3),
-    "deletedBy" TEXT,
-
-    CONSTRAINT "candidates_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "bookings" (
     "id" TEXT NOT NULL,
     "candidateId" TEXT NOT NULL,
@@ -322,3 +337,4 @@ ALTER TABLE "reports" ADD CONSTRAINT "reports_bookingId_fkey" FOREIGN KEY ("book
 
 -- AddForeignKey
 ALTER TABLE "reports" ADD CONSTRAINT "reports_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "candidates"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+

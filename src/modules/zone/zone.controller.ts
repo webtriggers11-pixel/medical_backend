@@ -29,7 +29,7 @@ export class ZoneController {
   constructor(private zoneService: ZoneService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a zone for a company' })
   create(@Body() dto: CreateZoneDto, @CurrentUser() user: any) {
@@ -37,15 +37,15 @@ export class ZoneController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'List zones for a company' })
-  @ApiQuery({ name: 'companyId', required: true })
-  findAll(@Query('companyId') companyId: string, @CurrentUser() user: any) {
-    return this.zoneService.findAll(companyId, user);
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({ summary: 'List zones (optionally filtered by company)' })
+  @ApiQuery({ name: 'companyId', required: false })
+  findAll(@Query('companyId') companyId?: string) {
+    return this.zoneService.findAll(companyId);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a zone' })
   update(
     @Param('id') id: string,
@@ -56,7 +56,7 @@ export class ZoneController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a zone (fails if active cities exist)' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.zoneService.remove(id, user);
