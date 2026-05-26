@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { CandidatesModule } from './modules/candidates/candidates.module';
 import { MailModule } from './modules/mail/mail.module';
 import { HealthModule } from './modules/health/health.module';
 import { SeedModule } from './modules/seed/seed.module';
@@ -19,6 +20,7 @@ import { LabModule } from './modules/lab/lab.module';
     MailModule,
     AuthModule,
     UsersModule,
+    CandidatesModule,
     HealthModule,
     SeedModule,
     CompanyModule,

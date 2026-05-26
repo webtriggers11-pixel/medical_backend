@@ -9,9 +9,7 @@ datasource db {
 
 // ─── Auth enums ───────────────────────────────────────────────
 enum Role {
-  SUPER_ADMIN
   ADMIN
-  MANAGER
   USER
 }
 
@@ -119,6 +117,25 @@ model User {
   otpResendAllowedAt DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  EXISTING
+  NEW
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String?
+  role                 Role      @default(USER)
+  isActive             Boolean   @default(true)
+  isDeleted            Boolean   @default(false)
+  isEmailVerified      Boolean   @default(false)
+  otpCode              String?
+  otpExpiresAt         DateTime?
+  otpResendAllowedAt   DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  candidates           Candidate[] @relation("CandidateCreatedBy")
 
   @@map("users")
 }
@@ -374,4 +391,29 @@ model Notification {
   createdBy String?
 
   @@map("notifications")
+}
+model Candidate {
+  id            String        @id @default(cuid())
+  zone          String?
+  city          String?
+  store         String?
+  name          String
+  employeeCode  String
+  mobileNumber  String
+  gender        Gender
+  age           Int
+  candidateType CandidateType
+  dateOfJoining DateTime
+  pincode       String?
+  email         String?
+  panNumber     String?
+  isActive      Boolean       @default(true)
+  isDeleted     Boolean       @default(false)
+  createdById   String?
+  createdBy     User?         @relation("CandidateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([createdById])
+  @@map("candidates")
 }

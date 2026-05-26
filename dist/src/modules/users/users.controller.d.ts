@@ -8,6 +8,7 @@ export declare class UsersController {
         email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
+        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -17,6 +18,7 @@ export declare class UsersController {
         email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
+        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -26,6 +28,7 @@ export declare class UsersController {
         email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
+        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;
@@ -35,6 +38,7 @@ export declare class UsersController {
         email: string;
         role: import("@prisma/client").$Enums.Role;
         isActive: boolean;
+        isDeleted: boolean;
         isEmailVerified: boolean;
         createdAt: Date;
         updatedAt: Date;

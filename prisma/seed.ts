@@ -8,14 +8,14 @@ const prisma = new PrismaClient({ adapter });
 
 const seeds = [
   {
-    email: 'superadmin@medisync.com',
-    password: 'SuperAdmin@123',
-    role: 'SUPER_ADMIN' as const,
-  },
-  {
     email: 'admin@medisync.com',
     password: 'Admin@123',
     role: 'ADMIN' as const,
+  },
+  {
+    email: 'user@medisync.com',
+    password: 'User@123',
+    role: 'USER' as const,
   },
 ];
 
