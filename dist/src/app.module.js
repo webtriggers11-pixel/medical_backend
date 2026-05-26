@@ -14,6 +14,12 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const mail_module_1 = require("./modules/mail/mail.module");
 const health_module_1 = require("./modules/health/health.module");
+const seed_module_1 = require("./modules/seed/seed.module");
+const company_module_1 = require("./modules/company/company.module");
+const zone_module_1 = require("./modules/zone/zone.module");
+const city_module_1 = require("./modules/city/city.module");
+const store_module_1 = require("./modules/store/store.module");
+const lab_module_1 = require("./modules/lab/lab.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -26,6 +32,12 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
             health_module_1.HealthModule,
+            seed_module_1.SeedModule,
+            company_module_1.CompanyModule,
+            zone_module_1.ZoneModule,
+            city_module_1.CityModule,
+            store_module_1.StoreModule,
+            lab_module_1.LabModule,
         ],
     })
 ], AppModule);

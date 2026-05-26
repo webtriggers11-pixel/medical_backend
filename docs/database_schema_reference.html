@@ -1,0 +1,340 @@
+
+<h2 class="sr-only">Database table reference for the diagnostic lab portal</h2>
+<style>
+.wrap{padding:0 0 24px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.d-purple{background:#534AB7}.d-teal{background:#0F6E56}.d-amber{background:#BA7517}.d-blue{background:#185FA5}.d-gray{background:#888780}
+.group-label{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--color-text-tertiary);text-transform:uppercase;margin:20px 0 8px}
+.tables-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:0}
+.tbl{border-radius:var(--border-radius-lg);overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
+.tbl-head{padding:8px 12px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;cursor:pointer}
+.tbl-head:hover{opacity:.85}
+.tbl-name{flex:1}
+.tbl-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;opacity:.8}
+.tbl-body{border-top:0.5px solid var(--color-border-tertiary)}
+.field-row{display:grid;grid-template-columns:1fr auto;align-items:center;padding:5px 12px;font-size:12px;border-bottom:0.5px solid var(--color-border-tertiary);gap:8px}
+.field-row:last-child{border-bottom:none}
+.field-row:nth-child(even){background:var(--color-background-secondary)}
+.fname{color:var(--color-text-primary);font-family:var(--font-mono);font-size:11px}
+.ftype{color:var(--color-text-tertiary);font-size:11px;white-space:nowrap}
+.fpk{color:#0F6E56;font-size:10px;font-weight:500;margin-left:4px}
+.ffk{color:#534AB7;font-size:10px;font-weight:500;margin-left:4px}
+.fopt{color:#888780;font-size:10px;margin-left:4px}
+.rel-section{margin-top:20px;padding:14px 16px;background:var(--color-background-secondary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary)}
+.rel-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 10px}
+.rel-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.rel-row:last-child{border-bottom:none}
+.rel-from{font-family:var(--font-mono);font-size:11px;color:#534AB7;min-width:120px}
+.rel-card{color:var(--color-text-tertiary);font-size:11px;min-width:60px;text-align:center}
+.rel-to{font-family:var(--font-mono);font-size:11px;color:#0F6E56}
+.rel-desc{color:var(--color-text-secondary);margin-left:auto;font-size:11px}
+@media(max-width:480px){.tables-row{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot d-purple"></div> Setup tables</div>
+  <div class="leg-item"><div class="leg-dot d-teal"></div> Operations tables</div>
+  <div class="leg-item"><div class="leg-dot d-amber"></div> Pricing tables</div>
+  <div class="leg-item"><div class="leg-dot d-blue"></div> User tables</div>
+  <div class="leg-item"><div class="leg-dot d-gray"></div> System tables</div>
+</div>
+
+<div class="group-label">Setup — company hierarchy</div>
+<div class="tables-row">
+
+  <div class="tbl" onclick="sendPrompt('What are all the fields needed in the companies table?')">
+    <div class="tbl-head" style="background:#EEEDFE">
+      <span class="tbl-name" style="color:#26215C">companies</span>
+      <span class="tbl-badge" style="background:#AFA9EC;color:#26215C">setup</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">code</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">industry_type</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">gst_number<span class="fopt">?</span></span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">contact_name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">contact_mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">billing_email</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">checkup_frequency</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">created_at</span><span class="ftype">timestamp</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('How are zones and cities stored — are they global or per company?')">
+    <div class="tbl-head" style="background:#EEEDFE">
+      <span class="tbl-name" style="color:#26215C">zones</span>
+      <span class="tbl-badge" style="background:#AFA9EC;color:#26215C">setup</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('How is the city table linked to zones?')">
+    <div class="tbl-head" style="background:#EEEDFE">
+      <span class="tbl-name" style="color:#26215C">cities</span>
+      <span class="tbl-badge" style="background:#AFA9EC;color:#26215C">setup</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">zone_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('What are all the fields in the stores table?')">
+    <div class="tbl-head" style="background:#EEEDFE">
+      <span class="tbl-name" style="color:#26215C">stores</span>
+      <span class="tbl-badge" style="background:#AFA9EC;color:#26215C">setup</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">city_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">store_code</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">address</span><span class="ftype">text</span></div>
+      <div class="field-row"><span class="fname">store_head_name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">store_head_mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">email<span class="fopt">?</span></span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-label">Operations — labs, panels, candidates</div>
+<div class="tables-row">
+
+  <div class="tbl" onclick="sendPrompt('What fields does the labs table need?')">
+    <div class="tbl-head" style="background:#E1F5EE">
+      <span class="tbl-name" style="color:#04342C">labs</span>
+      <span class="tbl-badge" style="background:#5DCAA5;color:#04342C">ops</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">contact_name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">contact_mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">email</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">service_cities</span><span class="ftype">json</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('What is a bundled test and how is it stored?')">
+    <div class="tbl-head" style="background:#E1F5EE">
+      <span class="tbl-name" style="color:#04342C">lab_bundled_tests</span>
+      <span class="tbl-badge" style="background:#5DCAA5;color:#04342C">ops</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">lab_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">tests_included</span><span class="ftype">json</span></div>
+      <div class="field-row"><span class="fname">default_timing</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">suggested_mrp</span><span class="ftype">decimal</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('How does the panels table store the 3-tier pricing?')">
+    <div class="tbl-head" style="background:#FAEEDA">
+      <span class="tbl-name" style="color:#412402">panels</span>
+      <span class="tbl-badge" style="background:#EF9F27;color:#412402">pricing</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">lab_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">bundled_test_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">timing</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">mrp</span><span class="ftype">decimal</span></div>
+      <div class="field-row"><span class="fname">cost_to_vendor</span><span class="ftype">decimal</span></div>
+      <div class="field-row"><span class="fname">lab_contact<span class="fopt">?</span></span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('How does company-specific panel pricing work?')">
+    <div class="tbl-head" style="background:#FAEEDA">
+      <span class="tbl-name" style="color:#412402">company_panel_pricing</span>
+      <span class="tbl-badge" style="background:#EF9F27;color:#412402">pricing</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">panel_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">cost_to_client</span><span class="ftype">decimal</span></div>
+      <div class="field-row"><span class="fname">discount_after_n</span><span class="ftype">int</span></div>
+      <div class="field-row"><span class="fname">discounted_price</span><span class="ftype">decimal</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-label">Candidates, bookings, reports</div>
+<div class="tables-row">
+
+  <div class="tbl" onclick="sendPrompt('What fields are stored for each candidate?')">
+    <div class="tbl-head" style="background:#E1F5EE">
+      <span class="tbl-name" style="color:#04342C">candidates</span>
+      <span class="tbl-badge" style="background:#5DCAA5;color:#04342C">ops</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">store_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">employee_code</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">gender</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">age</span><span class="ftype">int</span></div>
+      <div class="field-row"><span class="fname">doj</span><span class="ftype">date</span></div>
+      <div class="field-row"><span class="fname">candidate_type</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">is_active</span><span class="ftype">boolean</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('What does a booking record store — what is its full lifecycle?')">
+    <div class="tbl-head" style="background:#E1F5EE">
+      <span class="tbl-name" style="color:#04342C">bookings</span>
+      <span class="tbl-badge" style="background:#5DCAA5;color:#04342C">ops</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">candidate_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">panel_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">lab_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">req_date</span><span class="ftype">date</span></div>
+      <div class="field-row"><span class="fname">scheduled_date</span><span class="ftype">datetime</span></div>
+      <div class="field-row"><span class="fname">visit_time<span class="fopt">?</span></span><span class="ftype">datetime</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">amount_charged</span><span class="ftype">decimal</span></div>
+      <div class="field-row"><span class="fname">amount_to_vendor</span><span class="ftype">decimal</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('What does a test report record store?')">
+    <div class="tbl-head" style="background:#E1F5EE">
+      <span class="tbl-name" style="color:#04342C">reports</span>
+      <span class="tbl-badge" style="background:#5DCAA5;color:#04342C">ops</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">booking_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">candidate_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">report_url</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">fitness_status</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">uploaded_at</span><span class="ftype">timestamp</span></div>
+      <div class="field-row"><span class="fname">uploaded_by<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">remarks<span class="fopt">?</span></span><span class="ftype">text</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-label">Users and auth</div>
+<div class="tables-row">
+
+  <div class="tbl" onclick="sendPrompt('How does the users table handle multiple roles?')">
+    <div class="tbl-head" style="background:#E6F1FB">
+      <span class="tbl-name" style="color:#042C53">users</span>
+      <span class="tbl-badge" style="background:#85B7EB;color:#042C53">auth</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">name</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">email<span class="fopt">?</span></span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">role</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">company_id<span class="ffk">FK</span><span class="fopt">?</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">is_active</span><span class="ftype">boolean</span></div>
+      <div class="field-row"><span class="fname">created_at</span><span class="ftype">timestamp</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('How does OTP authentication work — what is stored?')">
+    <div class="tbl-head" style="background:#E6F1FB">
+      <span class="tbl-name" style="color:#042C53">otp_sessions</span>
+      <span class="tbl-badge" style="background:#85B7EB;color:#042C53">auth</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">mobile</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">otp_hash</span><span class="ftype">varchar</span></div>
+      <div class="field-row"><span class="fname">expires_at</span><span class="ftype">timestamp</span></div>
+      <div class="field-row"><span class="fname">verified</span><span class="ftype">boolean</span></div>
+    </div>
+  </div>
+
+  <div class="tbl" onclick="sendPrompt('What does the notifications log table store?')">
+    <div class="tbl-head" style="background:#F1EFE8">
+      <span class="tbl-name" style="color:#2C2C2A">notifications</span>
+      <span class="tbl-badge" style="background:#B4B2A9;color:#2C2C2A">system</span>
+    </div>
+    <div class="tbl-body">
+      <div class="field-row"><span class="fname">id<span class="fpk">PK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">user_id<span class="ffk">FK</span></span><span class="ftype">uuid</span></div>
+      <div class="field-row"><span class="fname">type</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">channel</span><span class="ftype">enum</span></div>
+      <div class="field-row"><span class="fname">message</span><span class="ftype">text</span></div>
+      <div class="field-row"><span class="fname">sent_at</span><span class="ftype">timestamp</span></div>
+      <div class="field-row"><span class="fname">status</span><span class="ftype">enum</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="rel-section">
+  <p class="rel-title">Key relationships at a glance</p>
+  <div class="rel-row">
+    <span class="rel-from">companies</span>
+    <span class="rel-card">1 → many</span>
+    <span class="rel-to">zones, cities, stores, candidates</span>
+    <span class="rel-desc">root of everything</span>
+  </div>
+  <div class="rel-row">
+    <span class="rel-from">stores</span>
+    <span class="rel-card">1 → many</span>
+    <span class="rel-to">candidates</span>
+    <span class="rel-desc">employees per branch</span>
+  </div>
+  <div class="rel-row">
+    <span class="rel-from">labs</span>
+    <span class="rel-card">1 → many</span>
+    <span class="rel-to">lab_bundled_tests → panels</span>
+    <span class="rel-desc">lab owns test packages</span>
+  </div>
+  <div class="rel-row">
+    <span class="rel-from">panels + companies</span>
+    <span class="rel-card">many → many</span>
+    <span class="rel-to">company_panel_pricing</span>
+    <span class="rel-desc">custom price per company</span>
+  </div>
+  <div class="rel-row">
+    <span class="rel-from">candidates</span>
+    <span class="rel-card">1 → many</span>
+    <span class="rel-to">bookings → reports</span>
+    <span class="rel-desc">one candidate, many checkups</span>
+  </div>
+  <div class="rel-row">
+    <span class="rel-from">bookings</span>
+    <span class="rel-card">1 → 1</span>
+    <span class="rel-to">reports</span>
+    <span class="rel-desc">one booking, one result</span>
+  </div>
+</div>
+
+</div>

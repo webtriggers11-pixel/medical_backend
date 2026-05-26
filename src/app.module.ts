@@ -7,6 +7,11 @@ import { CandidatesModule } from './modules/candidates/candidates.module';
 import { MailModule } from './modules/mail/mail.module';
 import { HealthModule } from './modules/health/health.module';
 import { SeedModule } from './modules/seed/seed.module';
+import { CompanyModule } from './modules/company/company.module';
+import { ZoneModule } from './modules/zone/zone.module';
+import { CityModule } from './modules/city/city.module';
+import { StoreModule } from './modules/store/store.module';
+import { LabModule } from './modules/lab/lab.module';
 
 @Module({
   imports: [
@@ -18,6 +23,11 @@ import { SeedModule } from './modules/seed/seed.module';
     CandidatesModule,
     HealthModule,
     SeedModule,
+    CompanyModule,
+    ZoneModule,
+    CityModule,
+    StoreModule,
+    LabModule,
   ],
 })
 export class AppModule {}
