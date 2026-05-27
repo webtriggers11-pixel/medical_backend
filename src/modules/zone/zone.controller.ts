@@ -1,17 +1,8 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
+  Controller, Get, Post, Patch, Delete,
+  Body, Param, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ZoneService } from './zone.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
@@ -24,39 +15,31 @@ import { Role } from '../../common/enums/role.enum';
 @ApiTags('Zones')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('zones')
 export class ZoneController {
   constructor(private zoneService: ZoneService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a zone for a company' })
+  @ApiOperation({ summary: 'Create a zone (global master)' })
   create(@Body() dto: CreateZoneDto, @CurrentUser() user: any) {
     return this.zoneService.create(dto, user);
   }
 
   @Get()
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'List zones for a company' })
-  @ApiQuery({ name: 'companyId', required: true })
-  findAll(@Query('companyId') companyId: string, @CurrentUser() user: any) {
-    return this.zoneService.findAll(companyId, user);
+  @ApiOperation({ summary: 'List all zones' })
+  findAll() {
+    return this.zoneService.findAll();
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a zone' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateZoneDto,
-    @CurrentUser() user: any,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateZoneDto, @CurrentUser() user: any) {
     return this.zoneService.update(id, dto, user);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a zone (fails if active cities exist)' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.zoneService.remove(id, user);

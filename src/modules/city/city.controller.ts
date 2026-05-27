@@ -1,15 +1,6 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
+  Controller, Get, Post, Patch, Delete,
+  Body, Param, Query, UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CityService } from './city.service';
@@ -24,39 +15,32 @@ import { Role } from '../../common/enums/role.enum';
 @ApiTags('Cities')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 @Controller('cities')
 export class CityController {
   constructor(private cityService: CityService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a city under a zone' })
+  @ApiOperation({ summary: 'Create a city under a zone (global master)' })
   create(@Body() dto: CreateCityDto, @CurrentUser() user: any) {
     return this.cityService.create(dto, user);
   }
 
   @Get()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List cities for a zone' })
   @ApiQuery({ name: 'zoneId', required: true })
-  findAll(@Query('zoneId') zoneId: string, @CurrentUser() user: any) {
-    return this.cityService.findAll(zoneId, user);
+  findAll(@Query('zoneId') zoneId: string) {
+    return this.cityService.findAll(zoneId);
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a city' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateCityDto,
-    @CurrentUser() user: any,
-  ) {
+  update(@Param('id') id: string, @Body() dto: UpdateCityDto, @CurrentUser() user: any) {
     return this.cityService.update(id, dto, user);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a city (fails if active stores exist)' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.cityService.remove(id, user);
