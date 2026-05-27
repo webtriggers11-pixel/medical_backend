@@ -157,8 +157,6 @@ model Company {
   deletedAt         DateTime?
   deletedBy         String?
 
-  zones             Zone[]
-  cities            City[]
   stores            Store[]
   candidates        Candidate[]
   bookings          Booking[]
@@ -169,7 +167,6 @@ model Company {
 
 model Zone {
   id        String     @id @default(cuid())
-  companyId String
   name      String
   status    ZoneStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
@@ -177,7 +174,6 @@ model Zone {
   deletedAt DateTime?
   deletedBy String?
 
-  company   Company    @relation(fields: [companyId], references: [id])
   cities    City[]
 
   @@map("zones")
@@ -186,7 +182,6 @@ model Zone {
 model City {
   id        String     @id @default(cuid())
   zoneId    String
-  companyId String
   name      String
   status    CityStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
@@ -195,7 +190,6 @@ model City {
   deletedBy String?
 
   zone      Zone       @relation(fields: [zoneId], references: [id])
-  company   Company    @relation(fields: [companyId], references: [id])
   stores    Store[]
 
   @@map("cities")

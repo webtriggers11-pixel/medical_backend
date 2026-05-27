@@ -13,13 +13,13 @@ import { Role } from '../../common/enums/role.enum';
 export class StoreService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateStoreDto, user: { sub: string; role: string; companyId?: string }) {
+  async create(dto: CreateStoreDto, user: { id: string; role: string; companyId?: string }) {
     await this.assertCompanyAccess(dto.companyId, user);
 
     const city = await this.prisma.city.findFirst({
-      where: { id: dto.cityId, companyId: dto.companyId, deletedAt: null },
+      where: { id: dto.cityId, deletedAt: null },
     });
-    if (!city) throw new NotFoundException('City not found in this company');
+    if (!city) throw new NotFoundException('City not found');
 
     const duplicate = await this.prisma.store.findFirst({
       where: { companyId: dto.companyId, storeCode: dto.storeCode, deletedAt: null },
@@ -38,7 +38,7 @@ export class StoreService {
         storeHeadName: dto.storeHeadName,
         storeHeadMobile: dto.storeHeadMobile,
         email: dto.email,
-        createdBy: user.sub,
+        createdBy: user.id,
       },
       include: { city: { select: { name: true } } },
     });
@@ -46,14 +46,12 @@ export class StoreService {
 
   async findAll(
     cityId: string,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const city = await this.prisma.city.findFirst({
       where: { id: cityId, deletedAt: null },
     });
     if (!city) throw new NotFoundException('City not found');
-
-    await this.assertCompanyAccess(city.companyId, user);
 
     return this.prisma.store.findMany({
       where: { cityId, deletedAt: null },
@@ -65,7 +63,7 @@ export class StoreService {
     });
   }
 
-  async findOne(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async findOne(id: string, user: { id: string; role: string; companyId?: string }) {
     const store = await this.prisma.store.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -82,7 +80,7 @@ export class StoreService {
   async update(
     id: string,
     dto: UpdateStoreDto,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const store = await this.findStoreOrFail(id);
     await this.assertCompanyAccess(store.companyId, user);
@@ -90,13 +88,13 @@ export class StoreService {
     return this.prisma.store.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
     const store = await this.findStoreOrFail(id);
     await this.assertCompanyAccess(store.companyId, user);
 
     return this.prisma.store.update({
       where: { id },
-      data: { deletedAt: new Date(), deletedBy: user.sub, status: 'INACTIVE' },
+      data: { deletedAt: new Date(), deletedBy: user.id, status: 'INACTIVE' },
     });
   }
 
@@ -108,7 +106,7 @@ export class StoreService {
 
   private async assertCompanyAccess(
     companyId: string,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, deletedAt: null },
