@@ -82,12 +82,17 @@ export class CandidatesController {
   @ApiResponse({ status: 201, description: 'Bulk upload result summary' })
   bulkUpload(@UploadedFile() file: UploadedCsv, @CurrentUser() user: any) {
     if (!file) {
-      throw new BadRequestException('No file uploaded. Field name must be "file".');
+      throw new BadRequestException(
+        'No file uploaded. Field name must be "file".',
+      );
     }
     const name = file.originalname?.toLowerCase() ?? '';
     if (!name.endsWith('.csv') && !file.mimetype?.includes('csv')) {
       throw new BadRequestException('Only .csv files are supported.');
     }
-    return this.candidatesService.bulkCreate(file.buffer.toString('utf-8'), user?.id);
+    return this.candidatesService.bulkCreate(
+      file.buffer.toString('utf-8'),
+      user?.id,
+    );
   }
 }

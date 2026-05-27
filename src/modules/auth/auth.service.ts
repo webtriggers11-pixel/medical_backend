@@ -36,12 +36,18 @@ export class AuthService {
     }
 
     // Enforce 60s resend cooldown
-    if (existing?.otpResendAllowedAt && existing.otpResendAllowedAt > new Date()) {
+    if (
+      existing?.otpResendAllowedAt &&
+      existing.otpResendAllowedAt > new Date()
+    ) {
       const secondsRemaining = Math.ceil(
         (existing.otpResendAllowedAt.getTime() - Date.now()) / 1000,
       );
       throw new HttpException(
-        { message: 'Please wait before requesting a new OTP', secondsRemaining },
+        {
+          message: 'Please wait before requesting a new OTP',
+          secondsRemaining,
+        },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
@@ -85,7 +91,9 @@ export class AuthService {
     }
 
     if (user.otpExpiresAt < new Date()) {
-      throw new BadRequestException('OTP has expired. Please request a new one');
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one',
+      );
     }
 
     const isValid = await bcrypt.compare(dto.otp, user.otpCode);
@@ -136,7 +144,11 @@ export class AuthService {
       },
     });
 
-    const accessToken = this.signAccessToken(updatedUser.id, updatedUser.email, updatedUser.role);
+    const accessToken = this.signAccessToken(
+      updatedUser.id,
+      updatedUser.email,
+      updatedUser.role,
+    );
 
     return { accessToken, user: updatedUser };
   }
@@ -146,7 +158,7 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !user.password) {
+    if (!user || !user.password || user.deletedAt) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -156,7 +168,9 @@ export class AuthService {
     }
 
     if (!user.isEmailVerified) {
-      throw new ForbiddenException('Email not verified. Please complete registration');
+      throw new ForbiddenException(
+        'Email not verified. Please complete registration',
+      );
     }
 
     if (!user.isActive) {

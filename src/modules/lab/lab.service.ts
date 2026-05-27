@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
@@ -55,7 +52,9 @@ export class LabService {
       where: { id },
       data: {
         ...dto,
-        ...(dto.serviceCities !== undefined && { serviceCities: dto.serviceCities }),
+        ...(dto.serviceCities !== undefined && {
+          serviceCities: dto.serviceCities,
+        }),
       },
     });
   }

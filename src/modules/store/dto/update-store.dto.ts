@@ -28,6 +28,21 @@ export class UpdateStoreDto {
   @IsOptional()
   email?: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeContact?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeAsstHeadName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeAsstHeadMobile?: string;
+
   @ApiPropertyOptional({ enum: StoreStatus })
   @IsEnum(StoreStatus)
   @IsOptional()

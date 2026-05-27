@@ -4,10 +4,6 @@ import { IsString, IsEmail, IsOptional, MinLength } from 'class-validator';
 export class CreateStoreDto {
   @ApiProperty()
   @IsString()
-  companyId: string;
-
-  @ApiProperty()
-  @IsString()
   cityId: string;
 
   @ApiProperty()
@@ -36,4 +32,19 @@ export class CreateStoreDto {
   @IsEmail()
   @IsOptional()
   email?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeContact?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeAsstHeadName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeAsstHeadMobile?: string;
 }

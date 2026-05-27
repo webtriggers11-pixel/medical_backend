@@ -11,7 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { BundledTestService } from './bundled-test.service';
 import { CreateBundledTestDto } from './dto/create-bundled-test.dto';
 import { UpdateBundledTestDto } from './dto/update-bundled-test.dto';
@@ -31,7 +36,10 @@ export class BundledTestController {
   @Post()
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a bundled test for a lab (e.g. "Pre-employment Basic" = CBC + X-Ray + UA)' })
+  @ApiOperation({
+    summary:
+      'Create a bundled test for a lab (e.g. "Pre-employment Basic" = CBC + X-Ray + UA)',
+  })
   create(@Body() dto: CreateBundledTestDto, @CurrentUser() user: any) {
     return this.bundledTestService.create(dto, user.id);
   }

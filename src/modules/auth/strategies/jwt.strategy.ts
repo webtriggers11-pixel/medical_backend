@@ -28,13 +28,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         email: true,
         role: true,
-        companyId: true,
         isActive: true,
         isEmailVerified: true,
+        deletedAt: true,
       },
     });
 
-    if (!user || !user.isActive || !user.isEmailVerified) {
+    if (!user || user.deletedAt || !user.isActive || !user.isEmailVerified) {
       throw new UnauthorizedException('Account is inactive or unverified');
     }
 

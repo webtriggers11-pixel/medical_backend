@@ -1,54 +1,41 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
-import { Role } from '../../common/enums/role.enum';
 
 @Injectable()
 export class ZoneService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateZoneDto, user: { id: string; role: string; companyId?: string }) {
-    await this.assertCompanyAccess(dto.companyId, user);
-
+  // Zones are standalone, global master data — not linked to any client.
+  async create(dto: CreateZoneDto, user: { id: string }) {
     return this.prisma.zone.create({
       data: {
-        companyId: dto.companyId,
         name: dto.name,
         createdBy: user.id,
       },
     });
   }
 
-  // Read-only listing is open to any authenticated user so the candidate
-  // cascade (Zone → City → Store) can populate. companyId is optional.
-  async findAll(companyId?: string) {
+  async findAll() {
     return this.prisma.zone.findMany({
-      where: { ...(companyId ? { companyId } : {}), deletedAt: null },
+      where: { deletedAt: null },
       orderBy: { createdAt: 'asc' },
       include: { _count: { select: { cities: true } } },
     });
   }
 
-  async update(
-    id: string,
-    dto: UpdateZoneDto,
-    user: { id: string; role: string; companyId?: string },
-  ) {
-    const zone = await this.findZoneOrFail(id);
-    await this.assertCompanyAccess(zone.companyId, user);
-
+  async update(id: string, dto: UpdateZoneDto) {
+    await this.findZoneOrFail(id);
     return this.prisma.zone.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
-    const zone = await this.findZoneOrFail(id);
-    await this.assertCompanyAccess(zone.companyId, user);
+  async remove(id: string, user: { id: string }) {
+    await this.findZoneOrFail(id);
 
     const activeCities = await this.prisma.city.count({
       where: { zoneId: id, deletedAt: null },
@@ -66,22 +53,10 @@ export class ZoneService {
   }
 
   private async findZoneOrFail(id: string) {
-    const zone = await this.prisma.zone.findFirst({ where: { id, deletedAt: null } });
+    const zone = await this.prisma.zone.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!zone) throw new NotFoundException('Zone not found');
     return zone;
-  }
-
-  private async assertCompanyAccess(
-    companyId: string,
-    user: { id: string; role: string; companyId?: string },
-  ) {
-    const company = await this.prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null },
-    });
-    if (!company) throw new NotFoundException('Company not found');
-
-    if (user.role !== Role.ADMIN && companyId !== user.companyId) {
-      throw new ForbiddenException('Access denied');
-    }
   }
 }

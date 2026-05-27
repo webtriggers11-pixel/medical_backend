@@ -11,7 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { StoreService } from './store.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -29,19 +34,29 @@ export class StoreController {
   constructor(private storeService: StoreService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.USER)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a store under a city' })
+  @ApiOperation({
+    summary: 'Create a store under a city (owned by the logged-in client)',
+  })
   create(@Body() dto: CreateStoreDto, @CurrentUser() user: any) {
     return this.storeService.create(dto, user);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.USER)
-  @ApiOperation({ summary: 'List stores for a city' })
-  @ApiQuery({ name: 'cityId', required: true })
-  findAll(@Query('cityId') cityId: string) {
-    return this.storeService.findAll(cityId);
+  @ApiOperation({
+    summary:
+      "List the client's stores (optionally filtered by zone/city)",
+  })
+  @ApiQuery({ name: 'cityId', required: false })
+  @ApiQuery({ name: 'zoneId', required: false })
+  findAll(
+    @CurrentUser() user: any,
+    @Query('cityId') cityId?: string,
+    @Query('zoneId') zoneId?: string,
+  ) {
+    return this.storeService.findAll(user, { cityId, zoneId });
   }
 
   @Get(':id')

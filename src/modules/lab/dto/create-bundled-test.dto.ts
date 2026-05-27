@@ -11,7 +11,10 @@ export class CreateBundledTestDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ type: [String], description: 'List of individual test names e.g. ["CBC", "X-Ray", "UA"]' })
+  @ApiProperty({
+    type: [String],
+    description: 'List of individual test names e.g. ["CBC", "X-Ray", "UA"]',
+  })
   @IsArray()
   @IsString({ each: true })
   testsIncluded: string[];

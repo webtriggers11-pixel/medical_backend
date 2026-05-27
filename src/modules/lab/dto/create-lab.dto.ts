@@ -18,7 +18,10 @@ export class CreateLabDto {
   @IsEmail()
   email: string;
 
-  @ApiPropertyOptional({ type: [String], description: 'List of city IDs this lab serves' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'List of city IDs this lab serves',
+  })
   @IsArray()
   @IsOptional()
   serviceCities?: string[];

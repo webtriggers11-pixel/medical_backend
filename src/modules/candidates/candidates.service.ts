@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { CandidateType } from '../../common/enums/candidate.enums';
@@ -10,7 +14,7 @@ import {
 
 const CANDIDATE_INCLUDE = {
   store: { select: { id: true, name: true, storeCode: true } },
-  company: { select: { id: true, name: true, code: true } },
+  client: { select: { id: true, name: true, email: true } },
 };
 
 export interface BulkUploadResult {
@@ -37,7 +41,7 @@ export class CandidatesService {
     return this.prisma.candidate.create({
       data: {
         storeId: store.id,
-        companyId: store.companyId,
+        clientId: store.clientId,
         name: dto.name,
         employeeCode: dto.employeeCode,
         mobile: dto.mobile,
@@ -58,7 +62,10 @@ export class CandidatesService {
     return buildCandidateTemplate();
   }
 
-  async bulkCreate(fileContent: string, userId?: string): Promise<BulkUploadResult> {
+  async bulkCreate(
+    fileContent: string,
+    userId?: string,
+  ): Promise<BulkUploadResult> {
     let rows;
     try {
       rows = parseCandidateCsv(fileContent);
@@ -72,7 +79,7 @@ export class CandidatesService {
 
     const result: BulkUploadResult = { created: 0, skipped: 0, errors: [] };
     const seenMobiles = new Set<string>();
-    const storeCompanyCache = new Map<string, string | null>();
+    const storeClientCache = new Map<string, string | null>();
 
     for (let i = 0; i < rows.length; i++) {
       const rowNumber = i + 2; // +1 header, +1 for 1-based
@@ -92,31 +99,39 @@ export class CandidatesService {
 
       if (seenMobiles.has(c.mobile)) {
         result.skipped++;
-        result.errors.push({ row: rowNumber, mobile: c.mobile, reason: 'Duplicate mobile within file' });
+        result.errors.push({
+          row: rowNumber,
+          mobile: c.mobile,
+          reason: 'Duplicate mobile within file',
+        });
         continue;
       }
       seenMobiles.add(c.mobile);
 
-      // Resolve & cache the store's company; skip rows with an unknown store.
-      let companyId = storeCompanyCache.get(c.storeId);
-      if (companyId === undefined) {
+      // Resolve & cache the store's client; skip rows with an unknown store.
+      let clientId = storeClientCache.get(c.storeId);
+      if (clientId === undefined) {
         const store = await this.prisma.store.findFirst({
           where: { id: c.storeId, deletedAt: null },
-          select: { companyId: true },
+          select: { clientId: true },
         });
-        companyId = store?.companyId ?? null;
-        storeCompanyCache.set(c.storeId, companyId);
+        clientId = store?.clientId ?? null;
+        storeClientCache.set(c.storeId, clientId);
       }
-      if (!companyId) {
+      if (!clientId) {
         result.skipped++;
-        result.errors.push({ row: rowNumber, mobile: c.mobile, reason: `Unknown storeId "${c.storeId}"` });
+        result.errors.push({
+          row: rowNumber,
+          mobile: c.mobile,
+          reason: `Unknown storeId "${c.storeId}"`,
+        });
         continue;
       }
 
       await this.prisma.candidate.create({
         data: {
           storeId: c.storeId,
-          companyId,
+          clientId,
           name: c.name,
           employeeCode: c.employeeCode,
           mobile: c.mobile,
@@ -139,7 +154,7 @@ export class CandidatesService {
   private async resolveStore(storeId: string) {
     const store = await this.prisma.store.findFirst({
       where: { id: storeId, deletedAt: null },
-      select: { id: true, companyId: true },
+      select: { id: true, clientId: true },
     });
     if (!store) throw new NotFoundException(`Store "${storeId}" not found`);
     return store;

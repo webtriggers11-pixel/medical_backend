@@ -11,7 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CityService } from './city.service';
 import { CreateCityDto } from './dto/create-city.dto';
 import { UpdateCityDto } from './dto/update-city.dto';
@@ -47,17 +52,15 @@ export class CityController {
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a city' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateCityDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.cityService.update(id, dto, user);
+  update(@Param('id') id: string, @Body() dto: UpdateCityDto) {
+    return this.cityService.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Soft-delete a city (fails if active stores exist)' })
+  @ApiOperation({
+    summary: 'Soft-delete a city (fails if active stores exist)',
+  })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.cityService.remove(id, user);
   }

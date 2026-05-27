@@ -15,7 +15,9 @@ export class MailService {
   async sendOtp(email: string, otp: string): Promise<void> {
     try {
       const { error } = await this.resend.emails.send({
-        from: this.configService.get<string>('SMTP_FROM') || 'MediSync <onboarding@resend.dev>',
+        from:
+          this.configService.get<string>('SMTP_FROM') ||
+          'MediSync <onboarding@resend.dev>',
         to: email,
         subject: 'Your MediSync Verification Code',
         html: otpEmailTemplate(otp),

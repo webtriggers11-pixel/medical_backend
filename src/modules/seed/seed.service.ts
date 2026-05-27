@@ -3,7 +3,11 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const SEED_USERS = [
-  { email: 'admin@medisync.com', password: 'Admin@123', role: 'ADMIN' as const },
+  {
+    email: 'admin@medisync.com',
+    password: 'Admin@123',
+    role: 'ADMIN' as const,
+  },
   { email: 'user@medisync.com', password: 'User@123', role: 'USER' as const },
 ];
 
@@ -17,7 +21,9 @@ export class SeedService {
     for (const seed of SEED_USERS) {
       const hashedPassword = await bcrypt.hash(seed.password, 12);
 
-      const existing = await this.prisma.user.findUnique({ where: { email: seed.email } });
+      const existing = await this.prisma.user.findUnique({
+        where: { email: seed.email },
+      });
 
       await this.prisma.user.upsert({
         where: { email: seed.email },

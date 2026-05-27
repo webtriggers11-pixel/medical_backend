@@ -16,9 +16,6 @@ async function bootstrap() {
     credentials: false,
   });
 
-
-
-  
   // Global pipes, filters, interceptors
   app.useGlobalPipes(
     new ValidationPipe({

@@ -14,18 +14,6 @@ enum Role {
 }
 
 // ─── Setup enums ──────────────────────────────────────────────
-enum CompanyStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum CheckupFrequency {
-  MONTHLY
-  QUARTERLY
-  HALF_YEARLY
-  YEARLY
-}
-
 enum ZoneStatus {
   ACTIVE
   INACTIVE
@@ -102,6 +90,8 @@ enum NotificationStatus {
 }
 
 // ─── Auth ─────────────────────────────────────────────────────
+// A User with role USER is a "client" — the owner of stores, candidates,
+// bookings and panel pricing. There is no separate Company entity.
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
@@ -109,7 +99,6 @@ model User {
   mobile             String?
   password           String?
   role               Role      @default(USER)
-  companyId          String?
   isActive           Boolean   @default(true)
   isEmailVerified    Boolean   @default(false)
   otpCode            String?
@@ -117,40 +106,21 @@ model User {
   otpResendAllowedAt DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  deletedBy          String?
+
+  // As a client:
+  stores             Store[]
+  candidates         Candidate[]
+  bookings           Booking[]
+  panelPricing       ClientPanelPricing[]
 
   @@map("users")
 }
 
-// ─── Setup — Company hierarchy ────────────────────────────────
-model Company {
-  id                String          @id @default(cuid())
-  name              String
-  code              String          @unique
-  industryType      String
-  gstNumber         String?
-  contactName       String
-  contactMobile     String
-  billingEmail      String
-  checkupFrequency  CheckupFrequency
-  status            CompanyStatus   @default(ACTIVE)
-  createdAt         DateTime        @default(now())
-  createdBy         String?
-  deletedAt         DateTime?
-  deletedBy         String?
-
-  zones             Zone[]
-  cities            City[]
-  stores            Store[]
-  candidates        Candidate[]
-  bookings          Booking[]
-  companyPricing    CompanyPanelPricing[]
-
-  @@map("companies")
-}
-
+// Zone is a standalone, global master entity — not linked to any client.
 model Zone {
   id        String     @id @default(cuid())
-  companyId String
   name      String
   status    ZoneStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
@@ -158,16 +128,15 @@ model Zone {
   deletedAt DateTime?
   deletedBy String?
 
-  company   Company    @relation(fields: [companyId], references: [id])
   cities    City[]
 
   @@map("zones")
 }
 
+// City belongs to a Zone only — also global master data, not company-scoped.
 model City {
   id        String     @id @default(cuid())
   zoneId    String
-  companyId String
   name      String
   status    CityStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
@@ -176,7 +145,6 @@ model City {
   deletedBy String?
 
   zone      Zone       @relation(fields: [zoneId], references: [id])
-  company   Company    @relation(fields: [companyId], references: [id])
   stores    Store[]
 
   @@map("cities")
@@ -184,25 +152,28 @@ model City {
 
 model Store {
   id              String      @id @default(cuid())
-  companyId       String
+  clientId        String
   cityId          String
-  storeCode       String
-  name            String
-  address         String
-  storeHeadName   String
-  storeHeadMobile String
-  email           String?
+  storeCode           String
+  name                String
+  address             String
+  storeHeadName       String
+  storeHeadMobile     String
+  email               String?
+  storeContact        String?
+  storeAsstHeadName   String?
+  storeAsstHeadMobile String?
   status          StoreStatus @default(ACTIVE)
   createdAt       DateTime    @default(now())
   createdBy       String?
   deletedAt       DateTime?
   deletedBy       String?
 
-  company         Company     @relation(fields: [companyId], references: [id])
+  client          User        @relation(fields: [clientId], references: [id])
   city            City        @relation(fields: [cityId], references: [id])
   candidates      Candidate[]
 
-  @@unique([companyId, storeCode])
+  @@unique([clientId, storeCode])
   @@map("stores")
 }
 
@@ -262,15 +233,16 @@ model Panel {
 
   lab            Lab            @relation(fields: [labId], references: [id])
   bundledTest    LabBundledTest @relation(fields: [bundledTestId], references: [id])
-  companyPricing CompanyPanelPricing[]
+  clientPricing  ClientPanelPricing[]
   bookings       Booking[]
 
   @@map("panels")
 }
 
-model CompanyPanelPricing {
+// Per-client pricing for a panel. The client is a User (role USER).
+model ClientPanelPricing {
   id               String   @id @default(cuid())
-  companyId        String
+  clientId         String
   panelId          String
   costToClient     Decimal  @db.Decimal(10, 2)
   discountAfterN   Int      @default(0)
@@ -280,18 +252,18 @@ model CompanyPanelPricing {
   deletedAt        DateTime?
   deletedBy        String?
 
-  company          Company  @relation(fields: [companyId], references: [id])
+  client           User     @relation(fields: [clientId], references: [id])
   panel            Panel    @relation(fields: [panelId], references: [id])
 
-  @@unique([companyId, panelId])
-  @@map("company_panel_pricing")
+  @@unique([clientId, panelId])
+  @@map("client_panel_pricing")
 }
 
 // ─── Candidates & Bookings ────────────────────────────────────
 model Candidate {
   id            String        @id @default(cuid())
   storeId       String
-  companyId     String
+  clientId      String
   name          String
   employeeCode  String
   mobile        String
@@ -309,7 +281,7 @@ model Candidate {
   deletedBy     String?
 
   store         Store         @relation(fields: [storeId], references: [id])
-  company       Company       @relation(fields: [companyId], references: [id])
+  client        User          @relation(fields: [clientId], references: [id])
   bookings      Booking[]
   reports       Report[]
 
@@ -321,7 +293,7 @@ model Booking {
   candidateId     String
   panelId         String
   labId           String
-  companyId       String
+  clientId        String
   reqDate         DateTime
   scheduledDate   DateTime?
   visitTime       DateTime?
@@ -336,7 +308,7 @@ model Booking {
   candidate       Candidate     @relation(fields: [candidateId], references: [id])
   panel           Panel         @relation(fields: [panelId], references: [id])
   lab             Lab           @relation(fields: [labId], references: [id])
-  company         Company       @relation(fields: [companyId], references: [id])
+  client          User          @relation(fields: [clientId], references: [id])
   report          Report?
 
   @@map("bookings")

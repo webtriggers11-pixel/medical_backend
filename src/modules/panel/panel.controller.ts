@@ -11,11 +11,16 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PanelService } from './panel.service';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
-import { SetCompanyPricingDto } from './dto/set-company-pricing.dto';
+import { SetClientPricingDto } from './dto/set-client-pricing.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -32,7 +37,9 @@ export class PanelController {
   @Post()
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a panel (links a bundled test to a lab with pricing)' })
+  @ApiOperation({
+    summary: 'Create a panel (links a bundled test to a lab with pricing)',
+  })
   create(@Body() dto: CreatePanelDto, @CurrentUser() user: any) {
     return this.panelService.create(dto, user.id);
   }
@@ -47,14 +54,16 @@ export class PanelController {
 
   @Get(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get a panel with all company pricing' })
+  @ApiOperation({ summary: 'Get a panel with all client pricing' })
   findOne(@Param('id') id: string) {
     return this.panelService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Update panel details (mrp, costToVendor, status, etc.)' })
+  @ApiOperation({
+    summary: 'Update panel details (mrp, costToVendor, status, etc.)',
+  })
   update(@Param('id') id: string, @Body() dto: UpdatePanelDto) {
     return this.panelService.update(id, dto);
   }
@@ -66,35 +75,37 @@ export class PanelController {
     return this.panelService.remove(id, user.id);
   }
 
-  // ── Company pricing endpoints ────────────────────────────────
+  // ── Client pricing endpoints ─────────────────────────────────
 
   @Post(':id/pricing')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Set or update company-specific pricing for a panel' })
-  setCompanyPricing(
+  @ApiOperation({
+    summary: 'Set or update client-specific pricing for a panel',
+  })
+  setClientPricing(
     @Param('id') panelId: string,
-    @Body() dto: SetCompanyPricingDto,
+    @Body() dto: SetClientPricingDto,
     @CurrentUser() user: any,
   ) {
-    return this.panelService.setCompanyPricing(panelId, dto, user.id);
+    return this.panelService.setClientPricing(panelId, dto, user.id);
   }
 
   @Get(':id/pricing')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'List all company pricing for a panel' })
-  getCompanyPricing(@Param('id') panelId: string) {
-    return this.panelService.getCompanyPricing(panelId);
+  @ApiOperation({ summary: 'List all client pricing for a panel' })
+  getClientPricing(@Param('id') panelId: string) {
+    return this.panelService.getClientPricing(panelId);
   }
 
-  @Delete(':id/pricing/:companyId')
+  @Delete(':id/pricing/:clientId')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Remove company-specific pricing for a panel' })
-  removeCompanyPricing(
+  @ApiOperation({ summary: 'Remove client-specific pricing for a panel' })
+  removeClientPricing(
     @Param('id') panelId: string,
-    @Param('companyId') companyId: string,
+    @Param('clientId') clientId: string,
     @CurrentUser() user: any,
   ) {
-    return this.panelService.removeCompanyPricing(panelId, companyId, user.id);
+    return this.panelService.removeClientPricing(panelId, clientId, user.id);
   }
 }

@@ -2,13 +2,21 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateClientDto } from './dto/update-client.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -24,10 +32,10 @@ export class UsersController {
 
   @Get()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get all users (ADMIN only)' })
-  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiOperation({ summary: 'List clients (users with role USER) — ADMIN only' })
+  @ApiResponse({ status: 200, description: 'List of clients' })
   findAll() {
-    return this.usersService.findAll();
+    return this.usersService.findClients();
   }
 
   @Get('me')
@@ -52,5 +60,23 @@ export class UsersController {
   @ApiResponse({ status: 201, description: 'User created' })
   create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Activate / deactivate a client (ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'Client updated' })
+  @ApiResponse({ status: 404, description: 'Client not found' })
+  setActive(@Param('id') id: string, @Body() dto: UpdateClientDto) {
+    return this.usersService.setActive(id, dto.isActive);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Soft-delete a client (ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'Client deleted' })
+  @ApiResponse({ status: 404, description: 'Client not found' })
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.usersService.softDelete(id, user.id);
   }
 }

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
@@ -13,24 +14,25 @@ import { Role } from '../../common/enums/role.enum';
 export class StoreService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateStoreDto, user: { id: string; role: string; companyId?: string }) {
-    await this.assertCompanyAccess(dto.companyId, user);
-
+  // A store belongs to the client (the logged-in user) who creates it.
+  async create(dto: CreateStoreDto, user: { id: string; role: string }) {
     const city = await this.prisma.city.findFirst({
-      where: { id: dto.cityId, companyId: dto.companyId, deletedAt: null },
+      where: { id: dto.cityId, deletedAt: null },
     });
-    if (!city) throw new NotFoundException('City not found in this company');
+    if (!city) throw new NotFoundException('City not found');
+
+    const clientId = user.id;
 
     const duplicate = await this.prisma.store.findFirst({
-      where: { companyId: dto.companyId, storeCode: dto.storeCode, deletedAt: null },
+      where: { clientId, storeCode: dto.storeCode, deletedAt: null },
     });
     if (duplicate) {
-      throw new ConflictException(`Store code "${dto.storeCode}" already exists in this company`);
+      throw new ConflictException(`Store code "${dto.storeCode}" already exists`);
     }
 
     return this.prisma.store.create({
       data: {
-        companyId: dto.companyId,
+        clientId,
         cityId: dto.cityId,
         storeCode: dto.storeCode,
         name: dto.name,
@@ -38,25 +40,47 @@ export class StoreService {
         storeHeadName: dto.storeHeadName,
         storeHeadMobile: dto.storeHeadMobile,
         email: dto.email,
+        storeContact: dto.storeContact,
+        storeAsstHeadName: dto.storeAsstHeadName,
+        storeAsstHeadMobile: dto.storeAsstHeadMobile,
         createdBy: user.id,
       },
       include: { city: { select: { name: true } } },
     });
   }
 
-  // Read-only listing is open to any authenticated user (candidate cascade).
-  async findAll(cityId: string) {
+  // Lists the client's own stores. ADMINs see all stores.
+  // Optional zone/city filters narrow the result; cities live under zones.
+  async findAll(
+    user: { id: string; role: string },
+    filters: { cityId?: string; zoneId?: string } = {},
+  ) {
+    const where: Prisma.StoreWhereInput = { deletedAt: null };
+
+    if (user.role !== Role.ADMIN) {
+      where.clientId = user.id;
+    }
+    if (filters.cityId) where.cityId = filters.cityId;
+    if (filters.zoneId) where.city = { zoneId: filters.zoneId };
+
     return this.prisma.store.findMany({
-      where: { cityId, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
+      where,
+      orderBy: { createdAt: 'desc' },
       include: {
-        city: { select: { name: true } },
+        city: {
+          select: {
+            id: true,
+            name: true,
+            zoneId: true,
+            zone: { select: { id: true, name: true } },
+          },
+        },
         _count: { select: { candidates: true } },
       },
     });
   }
 
-  async findOne(id: string, user: { id: string; role: string; companyId?: string }) {
+  async findOne(id: string, user: { id: string; role: string }) {
     const store = await this.prisma.store.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -66,24 +90,20 @@ export class StoreService {
     });
     if (!store) throw new NotFoundException('Store not found');
 
-    await this.assertCompanyAccess(store.companyId, user);
+    this.assertClientAccess(store.clientId, user);
     return store;
   }
 
-  async update(
-    id: string,
-    dto: UpdateStoreDto,
-    user: { id: string; role: string; companyId?: string },
-  ) {
+  async update(id: string, dto: UpdateStoreDto, user: { id: string; role: string }) {
     const store = await this.findStoreOrFail(id);
-    await this.assertCompanyAccess(store.companyId, user);
+    this.assertClientAccess(store.clientId, user);
 
     return this.prisma.store.update({ where: { id }, data: dto });
   }
 
-  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
+  async remove(id: string, user: { id: string; role: string }) {
     const store = await this.findStoreOrFail(id);
-    await this.assertCompanyAccess(store.companyId, user);
+    this.assertClientAccess(store.clientId, user);
 
     return this.prisma.store.update({
       where: { id },
@@ -92,21 +112,15 @@ export class StoreService {
   }
 
   private async findStoreOrFail(id: string) {
-    const store = await this.prisma.store.findFirst({ where: { id, deletedAt: null } });
+    const store = await this.prisma.store.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!store) throw new NotFoundException('Store not found');
     return store;
   }
 
-  private async assertCompanyAccess(
-    companyId: string,
-    user: { id: string; role: string; companyId?: string },
-  ) {
-    const company = await this.prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null },
-    });
-    if (!company) throw new NotFoundException('Company not found');
-
-    if (user.role !== Role.ADMIN && companyId !== user.companyId) {
+  private assertClientAccess(clientId: string, user: { id: string; role: string }) {
+    if (user.role !== Role.ADMIN && clientId !== user.id) {
       throw new ForbiddenException('Access denied');
     }
   }

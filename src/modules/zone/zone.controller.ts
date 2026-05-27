@@ -6,12 +6,11 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ZoneService } from './zone.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
@@ -31,33 +30,30 @@ export class ZoneController {
   @Post()
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a zone for a company' })
+  @ApiOperation({ summary: 'Create a zone (standalone master entity)' })
   create(@Body() dto: CreateZoneDto, @CurrentUser() user: any) {
     return this.zoneService.create(dto, user);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.USER)
-  @ApiOperation({ summary: 'List zones (optionally filtered by company)' })
-  @ApiQuery({ name: 'companyId', required: false })
-  findAll(@Query('companyId') companyId?: string) {
-    return this.zoneService.findAll(companyId);
+  @ApiOperation({ summary: 'List all zones' })
+  findAll() {
+    return this.zoneService.findAll();
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a zone' })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateZoneDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.zoneService.update(id, dto, user);
+  update(@Param('id') id: string, @Body() dto: UpdateZoneDto) {
+    return this.zoneService.update(id, dto);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Soft-delete a zone (fails if active cities exist)' })
+  @ApiOperation({
+    summary: 'Soft-delete a zone (fails if active cities exist)',
+  })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.zoneService.remove(id, user);
   }

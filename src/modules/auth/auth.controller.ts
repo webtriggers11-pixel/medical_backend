@@ -51,12 +51,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Step 3: Set password using setup token' })
-  @ApiResponse({ status: 201, description: 'Account created, access token issued' })
+  @ApiResponse({
+    status: 201,
+    description: 'Account created, access token issued',
+  })
   @ApiResponse({ status: 401, description: 'Invalid or expired setup token' })
-  completeRegister(
-    @Body() dto: CompleteRegisterDto,
-    @CurrentUser() user: any,
-  ) {
+  completeRegister(@Body() dto: CompleteRegisterDto, @CurrentUser() user: any) {
     return this.authService.completeRegister(user.sub, dto);
   }
 

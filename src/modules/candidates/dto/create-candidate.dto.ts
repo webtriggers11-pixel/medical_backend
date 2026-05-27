@@ -15,7 +15,10 @@ import {
 import { CandidateType, Gender } from '../../../common/enums/candidate.enums';
 
 export class CreateCandidateDto {
-  @ApiProperty({ example: 'clr1store...', description: 'Store the candidate belongs to' })
+  @ApiProperty({
+    example: 'clr1store...',
+    description: 'Store the candidate belongs to',
+  })
   @IsString()
   @IsNotEmpty()
   storeId: string;
@@ -51,7 +54,10 @@ export class CreateCandidateDto {
   })
   candidateType: CandidateType;
 
-  @ApiProperty({ example: '2026-05-22', description: 'Date of joining (ISO YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-05-22',
+    description: 'Date of joining (ISO YYYY-MM-DD)',
+  })
   @IsISO8601({}, { message: 'doj must be a valid date' })
   doj: string;
 

@@ -36,7 +36,9 @@ export interface NormalizedCandidate {
 }
 
 // Every column is required for bulk upload except panNumber.
-const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter((c) => c !== 'panNumber');
+const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter(
+  (c) => c !== 'panNumber',
+);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
@@ -129,7 +131,9 @@ function parseDate(value: string): Date | null | undefined {
 
   const parsed = new Date(trimmed);
   if (isNaN(parsed.getTime())) return undefined;
-  return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+  return new Date(
+    Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
+  );
 }
 
 /**

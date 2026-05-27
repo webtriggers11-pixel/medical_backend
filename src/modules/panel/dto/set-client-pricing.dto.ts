@@ -2,25 +2,29 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class SetCompanyPricingDto {
+export class SetClientPricingDto {
   @ApiProperty()
   @IsString()
-  companyId: string;
+  clientId: string;
 
-  @ApiProperty({ description: 'What the company pays per candidate (INR)' })
+  @ApiProperty({ description: 'What the client pays per candidate (INR)' })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
   costToClient: number;
 
-  @ApiPropertyOptional({ description: 'Trigger loyalty discount after N bookings (0 = no discount)' })
+  @ApiPropertyOptional({
+    description: 'Trigger loyalty discount after N bookings (0 = no discount)',
+  })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
   @IsOptional()
   discountAfterN?: number;
 
-  @ApiPropertyOptional({ description: 'Discounted price after N bookings (INR)' })
+  @ApiPropertyOptional({
+    description: 'Discounted price after N bookings (INR)',
+  })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Type(() => Number)
