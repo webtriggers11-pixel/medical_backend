@@ -12,6 +12,7 @@ import { ZoneModule } from './modules/zone/zone.module';
 import { CityModule } from './modules/city/city.module';
 import { StoreModule } from './modules/store/store.module';
 import { LabModule } from './modules/lab/lab.module';
+import { PanelModule } from './modules/panel/panel.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { LabModule } from './modules/lab/lab.module';
     CityModule,
     StoreModule,
     LabModule,
+    PanelModule,
   ],
 })
 export class AppModule {}
