@@ -34,9 +34,9 @@ export class CompanyService {
     });
   }
 
-  async findAll(user: { sub: string; role: string; companyId?: string }) {
+  async findAll(user: { id: string; role: string; companyId?: string }) {
     const where =
-      user.role === Role.SUPER_ADMIN
+      user.role === Role.ADMIN
         ? { deletedAt: null }
         : { id: user.companyId, deletedAt: null };
 
@@ -46,14 +46,14 @@ export class CompanyService {
     });
   }
 
-  async findOne(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async findOne(id: string, user: { id: string; role: string; companyId?: string }) {
     const company = await this.prisma.company.findFirst({
       where: { id, deletedAt: null },
     });
 
     if (!company) throw new NotFoundException('Company not found');
 
-    if (user.role !== Role.SUPER_ADMIN && company.id !== user.companyId) {
+    if (user.role !== Role.ADMIN && company.id !== user.companyId) {
       throw new ForbiddenException('Access denied');
     }
 
@@ -63,7 +63,7 @@ export class CompanyService {
   async update(
     id: string,
     dto: UpdateCompanyDto,
-    user: { sub: string; role: string; companyId?: string },
+    user: { id: string; role: string; companyId?: string },
   ) {
     await this.findOne(id, user);
 
@@ -73,14 +73,14 @@ export class CompanyService {
     });
   }
 
-  async remove(id: string, user: { sub: string; role: string; companyId?: string }) {
+  async remove(id: string, user: { id: string; role: string; companyId?: string }) {
     await this.findOne(id, user);
 
     return this.prisma.company.update({
       where: { id },
       data: {
         deletedAt: new Date(),
-        deletedBy: user.sub,
+        deletedBy: user.id,
         status: 'INACTIVE',
       },
     });

@@ -83,7 +83,7 @@ export class ZoneService {
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    if (user.role !== Role.SUPER_ADMIN && companyId !== user.companyId) {
+    if (user.role !== Role.ADMIN && companyId !== user.companyId) {
       throw new ForbiddenException('Access denied');
     }
   }

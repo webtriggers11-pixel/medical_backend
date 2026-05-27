@@ -29,15 +29,15 @@ export class LabController {
   constructor(private labService: LabService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a lab' })
   create(@Body() dto: CreateLabDto, @CurrentUser() user: any) {
-    return this.labService.create(dto, user.sub);
+    return this.labService.create(dto, user.id);
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all labs, optionally filtered by cityId' })
   @ApiQuery({ name: 'cityId', required: false })
   findAll(@Query('cityId') cityId?: string) {
@@ -45,27 +45,27 @@ export class LabController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get a lab with its panels' })
   findOne(@Param('id') id: string) {
     return this.labService.findOne(id);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a lab' })
   update(
     @Param('id') id: string,
     @Body() dto: UpdateLabDto,
     @CurrentUser() user: any,
   ) {
-    return this.labService.update(id, dto, user.sub);
+    return this.labService.update(id, dto, user.id);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a lab' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.labService.remove(id, user.sub);
+    return this.labService.remove(id, user.id);
   }
 }

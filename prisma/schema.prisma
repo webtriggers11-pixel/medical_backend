@@ -103,39 +103,20 @@ enum NotificationStatus {
 
 // ─── Auth ─────────────────────────────────────────────────────
 model User {
-  id                 String    @id @default(cuid())
-  email              String    @unique
-  name               String?
-  mobile             String?
-  password           String?
-  role               Role      @default(USER)
-  companyId          String?
-  isActive           Boolean   @default(true)
-  isEmailVerified    Boolean   @default(false)
-  otpCode            String?
-  otpExpiresAt       DateTime?
-  otpResendAllowedAt DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  EXISTING
-  NEW
-}
-
-model User {
   id                   String    @id @default(cuid())
   email                String    @unique
+  name                 String?
+  mobile               String?
   password             String?
   role                 Role      @default(USER)
+  companyId            String?
   isActive             Boolean   @default(true)
-  isDeleted            Boolean   @default(false)
   isEmailVerified      Boolean   @default(false)
   otpCode              String?
   otpExpiresAt         DateTime?
   otpResendAllowedAt   DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
-
-  candidates           Candidate[] @relation("CandidateCreatedBy")
 
   @@map("users")
 }
@@ -318,6 +299,9 @@ model Candidate {
   age           Int
   doj           DateTime?
   candidateType CandidateType @default(NEW_JOINER)
+  pincode       String?
+  email         String?
+  panNumber     String?
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   createdBy     String?
@@ -391,29 +375,4 @@ model Notification {
   createdBy String?
 
   @@map("notifications")
-}
-model Candidate {
-  id            String        @id @default(cuid())
-  zone          String?
-  city          String?
-  store         String?
-  name          String
-  employeeCode  String
-  mobileNumber  String
-  gender        Gender
-  age           Int
-  candidateType CandidateType
-  dateOfJoining DateTime
-  pincode       String?
-  email         String?
-  panNumber     String?
-  isActive      Boolean       @default(true)
-  isDeleted     Boolean       @default(false)
-  createdById   String?
-  createdBy     User?         @relation("CandidateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([createdById])
-  @@map("candidates")
 }

@@ -28,29 +28,29 @@ export class CompanyController {
   constructor(private companyService: CompanyService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a company (SUPER_ADMIN only)' })
   create(@Body() dto: CreateCompanyDto, @CurrentUser() user: any) {
-    return this.companyService.create(dto, user.sub);
+    return this.companyService.create(dto, user.id);
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List companies (ADMIN: own only, SUPER_ADMIN: all)' })
   findAll(@CurrentUser() user: any) {
     return this.companyService.findAll(user);
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get a company by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.companyService.findOne(id, user);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a company' })
   update(
     @Param('id') id: string,
@@ -61,7 +61,7 @@ export class CompanyController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a company' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.companyService.remove(id, user);

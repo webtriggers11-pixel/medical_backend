@@ -29,7 +29,7 @@ export class CityController {
   constructor(private cityService: CityService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a city under a zone' })
   create(@Body() dto: CreateCityDto, @CurrentUser() user: any) {
@@ -37,7 +37,7 @@ export class CityController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List cities for a zone' })
   @ApiQuery({ name: 'zoneId', required: true })
   findAll(@Query('zoneId') zoneId: string, @CurrentUser() user: any) {
@@ -45,7 +45,7 @@ export class CityController {
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a city' })
   update(
     @Param('id') id: string,
@@ -56,7 +56,7 @@ export class CityController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a city (fails if active stores exist)' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.cityService.remove(id, user);
