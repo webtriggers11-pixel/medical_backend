@@ -29,7 +29,7 @@ export class StoreController {
   constructor(private storeService: StoreService) {}
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a store under a city' })
   create(@Body() dto: CreateStoreDto, @CurrentUser() user: any) {
@@ -37,7 +37,7 @@ export class StoreController {
   }
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List stores for a city' })
   @ApiQuery({ name: 'cityId', required: true })
   findAll(@Query('cityId') cityId: string, @CurrentUser() user: any) {
@@ -45,14 +45,14 @@ export class StoreController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get a store by ID' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.storeService.findOne(id, user);
   }
 
   @Patch(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update a store' })
   update(
     @Param('id') id: string,
@@ -63,7 +63,7 @@ export class StoreController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a store' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {
     return this.storeService.remove(id, user);

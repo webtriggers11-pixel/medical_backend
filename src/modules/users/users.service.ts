@@ -20,7 +20,7 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      where: { isDeleted: false },
+      where: { isActive: true },
       select: USER_SELECT,
       orderBy: { createdAt: 'desc' },
     });

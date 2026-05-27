@@ -12,23 +12,18 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { CandidateType, Gender } from '../../../common/enums/candidate.enums';
+import { CandidateType, Gender } from '@prisma/client';
 
 export class CreateCandidateDto {
-  @ApiPropertyOptional({ example: 'East' })
+  @ApiProperty({ description: 'Store ID the candidate belongs to' })
   @IsString()
-  @IsOptional()
-  zone?: string;
+  @IsNotEmpty()
+  storeId: string;
 
-  @ApiPropertyOptional({ example: 'Guwahati' })
+  @ApiProperty({ description: 'Company ID the candidate belongs to' })
   @IsString()
-  @IsOptional()
-  city?: string;
-
-  @ApiPropertyOptional({ example: 'Semolina Kitchens Pvt. Ltd.' })
-  @IsString()
-  @IsOptional()
-  store?: string;
+  @IsNotEmpty()
+  companyId: string;
 
   @ApiProperty({ example: 'John Doe' })
   @IsString()
@@ -41,8 +36,8 @@ export class CreateCandidateDto {
   employeeCode: string;
 
   @ApiProperty({ example: '9999999999' })
-  @Matches(/^\d{10}$/, { message: 'mobileNumber must be exactly 10 digits' })
-  mobileNumber: string;
+  @Matches(/^\d{10}$/, { message: 'mobile must be exactly 10 digits' })
+  mobile: string;
 
   @ApiProperty({ enum: Gender, example: Gender.MALE })
   @IsEnum(Gender, { message: 'gender must be MALE, FEMALE or OTHER' })
@@ -55,13 +50,14 @@ export class CreateCandidateDto {
   @Max(100, { message: 'age must be 100 or less' })
   age: number;
 
-  @ApiProperty({ enum: CandidateType, example: CandidateType.EXISTING })
-  @IsEnum(CandidateType, { message: 'candidateType must be EXISTING or NEW' })
+  @ApiProperty({ enum: CandidateType, example: CandidateType.NEW_JOINER })
+  @IsEnum(CandidateType, { message: 'candidateType must be NEW_JOINER or EXISTING' })
   candidateType: CandidateType;
 
-  @ApiProperty({ example: '2026-05-22', description: 'ISO date (YYYY-MM-DD)' })
-  @IsISO8601({}, { message: 'dateOfJoining must be a valid date' })
-  dateOfJoining: string;
+  @ApiPropertyOptional({ example: '2026-05-22', description: 'ISO date (YYYY-MM-DD)' })
+  @IsISO8601({}, { message: 'doj must be a valid date' })
+  @IsOptional()
+  doj?: string;
 
   @ApiPropertyOptional({ example: '781001' })
   @IsOptional()
