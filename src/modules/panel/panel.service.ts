@@ -56,12 +56,8 @@ export class PanelService {
         bundledTest: { select: { id: true, name: true, testsIncluded: true } },
         clientPricing: {
           where: { deletedAt: null },
-          select: {
-            id: true,
-            clientId: true,
-            costToClient: true,
-            discountAfterN: true,
-            discountedPrice: true,
+          include: {
+            client: { select: { id: true, name: true, email: true } },
           },
         },
       },
