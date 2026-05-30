@@ -44,10 +44,10 @@ export class CandidatesController {
   constructor(private candidatesService: CandidatesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List all candidates' })
+  @ApiOperation({ summary: 'List candidates (scoped to own client for USER role)' })
   @ApiResponse({ status: 200, description: 'List of candidates' })
-  findAll() {
-    return this.candidatesService.findAll();
+  findAll(@CurrentUser() user: any) {
+    return this.candidatesService.findAll(user);
   }
 
   @Post()

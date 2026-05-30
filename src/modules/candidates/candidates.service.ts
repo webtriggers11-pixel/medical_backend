@@ -27,9 +27,11 @@ export interface BulkUploadResult {
 export class CandidatesService {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
+  findAll(user: { id: string; role: string }) {
+    const where: any = { deletedAt: null };
+    if (user.role !== 'ADMIN') where.clientId = user.id;
     return this.prisma.candidate.findMany({
-      where: { deletedAt: null },
+      where,
       include: CANDIDATE_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });

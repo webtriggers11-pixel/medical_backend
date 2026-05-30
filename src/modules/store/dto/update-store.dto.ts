@@ -6,6 +6,16 @@ export class UpdateStoreDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
+  cityId?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  storeCode?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
   name?: string;
 
   @ApiPropertyOptional()
