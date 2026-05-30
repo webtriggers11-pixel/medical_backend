@@ -29,6 +29,16 @@ export class UpdateLabDto {
   @IsOptional()
   email?: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  pincode?: string;
+
   @ApiPropertyOptional({ type: [String] })
   @IsArray()
   @IsOptional()

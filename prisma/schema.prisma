@@ -184,6 +184,8 @@ model Lab {
   contactName    String
   contactMobile  String
   email          String
+  address        String?
+  pincode        String?
   serviceCities  Json      @default("[]")
   status         LabStatus @default(ACTIVE)
   createdAt      DateTime  @default(now())

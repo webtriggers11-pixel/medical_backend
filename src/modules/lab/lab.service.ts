@@ -14,6 +14,8 @@ export class LabService {
         contactName: dto.contactName,
         contactMobile: dto.contactMobile,
         email: dto.email,
+        address: dto.address,
+        pincode: dto.pincode,
         serviceCities: dto.serviceCities ?? [],
         createdBy: userId,
       },

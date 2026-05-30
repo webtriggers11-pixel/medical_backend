@@ -18,6 +18,16 @@ export class CreateLabDto {
   @IsEmail()
   email: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  pincode?: string;
+
   @ApiPropertyOptional({
     type: [String],
     description: 'List of city IDs this lab serves',
