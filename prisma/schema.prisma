@@ -298,6 +298,7 @@ model Booking {
   labId           String
   clientId        String
   reqDate         DateTime
+  timeSlot        String?
   scheduledDate   DateTime?
   visitTime       DateTime?
   status          BookingStatus @default(APPOINTMENT_REQUESTED)
