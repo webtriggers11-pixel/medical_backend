@@ -67,8 +67,8 @@ export class StoreController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.USER)
-  @ApiOperation({ summary: 'Update a store (owner or admin)' })
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update a store (admin only)' })
   update(
     @Param('id') id: string,
     @Body() dto: UpdateStoreDto,
