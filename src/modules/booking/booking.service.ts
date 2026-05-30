@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -11,82 +10,92 @@ import { Role } from '../../common/enums/role.enum';
 
 const BOOKING_INCLUDE = {
   candidate: {
-    select: { id: true, name: true, employeeCode: true, mobile: true, panNumber: true, gender: true, age: true },
+    select: {
+      id: true, name: true, employeeCode: true, mobile: true, panNumber: true,
+      gender: true, age: true, storeId: true,
+      store: { select: { id: true, name: true, storeCode: true } },
+    },
   },
   panel: {
-    select: { id: true, name: true, mrp: true, costToVendor: true },
+    select: {
+      id: true, name: true, mrp: true, costToVendor: true,
+      bundledTest: { select: { id: true, name: true, testsIncluded: true } },
+    },
   },
   lab: {
-    select: { id: true, name: true, contactName: true, contactMobile: true, address: true },
+    select: { id: true, name: true, contactName: true, contactMobile: true, email: true, address: true, pincode: true },
   },
-  client: {
-    select: { id: true, name: true, email: true },
-  },
+  client: { select: { id: true, name: true, email: true } },
 };
 
 @Injectable()
 export class BookingService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateBookingDto, user: { id: string; role: string }) {
-    // Validate candidate
+  // ── Admin: candidates awaiting booking ─────────────────────────
+  // A "booking request" = candidate with an appointmentDate but no active
+  // booking yet. HR sets appointmentDate when creating the candidate.
+  async findRequests() {
+    const candidates = await this.prisma.candidate.findMany({
+      where: {
+        deletedAt: null,
+        appointmentDate: { not: null },
+        bookings: {
+          none: { status: { notIn: ['CANCELLED'] }, deletedAt: null },
+        },
+      },
+      include: {
+        store: { select: { id: true, name: true, storeCode: true } },
+        client: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { appointmentDate: 'asc' },
+    });
+    return candidates;
+  }
+
+  // ── Admin books a candidate by assigning a panel ───────────────
+  async create(dto: CreateBookingDto) {
     const candidate = await this.prisma.candidate.findFirst({
       where: { id: dto.candidateId, deletedAt: null },
     });
     if (!candidate) throw new NotFoundException('Candidate not found');
-
-    // Scope check — USER can only book their own candidates
-    if (user.role !== Role.ADMIN && candidate.clientId !== user.id) {
-      throw new ForbiddenException('Access denied');
+    if (!candidate.appointmentDate) {
+      throw new BadRequestException('Candidate has no appointment date set');
     }
 
-    // Validate panel
     const panel = await this.prisma.panel.findFirst({
       where: { id: dto.panelId, deletedAt: null, status: 'ACTIVE' },
     });
     if (!panel) throw new NotFoundException('Panel not found');
 
-    // Minimum 1-day gap from today
-    const reqDate = new Date(dto.reqDate);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    if (reqDate < tomorrow) {
-      throw new BadRequestException('Appointment date must be at least 1 day from today');
-    }
-
-    // Check candidate not already booked (no active booking)
+    // No active booking already
     const existing = await this.prisma.booking.findFirst({
       where: {
         candidateId: dto.candidateId,
-        status: { notIn: ['CANCELLED', 'FIT', 'UNFIT'] },
+        status: { notIn: ['CANCELLED'] },
         deletedAt: null,
       },
     });
-    if (existing) {
-      throw new BadRequestException('Candidate already has an active booking');
-    }
+    if (existing) throw new BadRequestException('Candidate already booked');
 
-    // Get client pricing for amount calculation
-    const clientId = user.role === Role.ADMIN ? candidate.clientId : user.id;
+    // Client-specific pricing for this panel; fall back to MRP
     const pricing = await this.prisma.clientPanelPricing.findFirst({
-      where: { clientId, panelId: dto.panelId, deletedAt: null },
+      where: { clientId: candidate.clientId, panelId: dto.panelId, deletedAt: null },
     });
-
     const amountCharged = pricing ? pricing.costToClient : panel.mrp;
-    const amountToVendor = panel.costToVendor;
 
     return this.prisma.booking.create({
       data: {
-        candidateId: dto.candidateId,
-        panelId: dto.panelId,
+        candidateId: candidate.id,
+        panelId: panel.id,
         labId: panel.labId,
-        clientId,
-        reqDate,
+        clientId: candidate.clientId,
+        reqDate: candidate.appointmentDate,
+        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : candidate.appointmentDate,
         timeSlot: dto.timeSlot,
         amountCharged,
-        amountToVendor,
-        createdBy: user.id,
+        amountToVendor: panel.costToVendor,
+        status: 'SCHEDULED',
       },
       include: BOOKING_INCLUDE,
     });
@@ -97,17 +106,12 @@ export class BookingService {
     filters: { status?: string; clientId?: string } = {},
   ) {
     const where: any = { deletedAt: null };
-
-    // USER sees only their own bookings
     if (user.role !== Role.ADMIN) {
       where.clientId = user.id;
     } else if (filters.clientId) {
       where.clientId = filters.clientId;
     }
-
-    if (filters.status) {
-      where.status = filters.status;
-    }
+    if (filters.status) where.status = filters.status;
 
     return this.prisma.booking.findMany({
       where,
@@ -116,23 +120,7 @@ export class BookingService {
     });
   }
 
-  // Pending = APPOINTMENT_REQUESTED — shown on admin dashboard
-  async findPending() {
-    return this.prisma.booking.findMany({
-      where: { status: 'APPOINTMENT_REQUESTED', deletedAt: null },
-      include: {
-        ...BOOKING_INCLUDE,
-        client: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-  }
-
-  async updateStatus(
-    id: string,
-    dto: UpdateBookingStatusDto,
-    user: { id: string; role: string },
-  ) {
+  async updateStatus(id: string, dto: UpdateBookingStatusDto) {
     const booking = await this.prisma.booking.findFirst({
       where: { id, deletedAt: null },
     });

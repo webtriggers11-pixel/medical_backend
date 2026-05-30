@@ -294,24 +294,24 @@ model Candidate {
 model Booking {
   id              String        @id @default(cuid())
   candidateId     String
-  panelId         String
-  labId           String
+  panelId         String?
+  labId           String?
   clientId        String
   reqDate         DateTime
   timeSlot        String?
   scheduledDate   DateTime?
   visitTime       DateTime?
   status          BookingStatus @default(APPOINTMENT_REQUESTED)
-  amountCharged   Decimal       @db.Decimal(10, 2)
-  amountToVendor  Decimal       @db.Decimal(10, 2)
+  amountCharged   Decimal?      @db.Decimal(10, 2)
+  amountToVendor  Decimal?      @db.Decimal(10, 2)
   createdAt       DateTime      @default(now())
   createdBy       String?
   deletedAt       DateTime?
   deletedBy       String?
 
   candidate       Candidate     @relation(fields: [candidateId], references: [id])
-  panel           Panel         @relation(fields: [panelId], references: [id])
-  lab             Lab           @relation(fields: [labId], references: [id])
+  panel           Panel?        @relation(fields: [panelId], references: [id])
+  lab             Lab?          @relation(fields: [labId], references: [id])
   client          User          @relation(fields: [clientId], references: [id])
   report          Report?
 

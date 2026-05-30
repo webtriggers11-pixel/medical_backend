@@ -32,19 +32,19 @@ import { Role } from '../../common/enums/role.enum';
 export class BookingController {
   constructor(private bookingService: BookingService) {}
 
-  @Post()
-  @Roles(Role.ADMIN, Role.USER)
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'HR creates an appointment request for a candidate' })
-  create(@Body() dto: CreateBookingDto, @CurrentUser() user: any) {
-    return this.bookingService.create(dto, user);
+  @Get('requests')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Candidates awaiting booking (have appointment date, not yet booked)' })
+  findRequests() {
+    return this.bookingService.findRequests();
   }
 
-  @Get('pending')
+  @Post()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get all pending booking requests (APPOINTMENT_REQUESTED) — admin dashboard' })
-  findPending() {
-    return this.bookingService.findPending();
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Admin books a candidate by assigning a panel (→ SCHEDULED)' })
+  create(@Body() dto: CreateBookingDto) {
+    return this.bookingService.create(dto);
   }
 
   @Get()
@@ -69,12 +69,8 @@ export class BookingController {
 
   @Patch(':id/status')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Admin advances booking status (confirm, visited, report, fit/unfit)' })
-  updateStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateBookingStatusDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.bookingService.updateStatus(id, dto, user);
+  @ApiOperation({ summary: 'Admin advances booking status (visited, report, fit/unfit)' })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
+    return this.bookingService.updateStatus(id, dto);
   }
 }
