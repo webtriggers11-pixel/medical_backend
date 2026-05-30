@@ -60,15 +60,15 @@ export class StoreController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Get a store by ID' })
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({ summary: 'Get a store by ID (owner or admin)' })
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
     return this.storeService.findOne(id, user);
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Update a store' })
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({ summary: 'Update a store (owner or admin)' })
   update(
     @Param('id') id: string,
     @Body() dto: UpdateStoreDto,

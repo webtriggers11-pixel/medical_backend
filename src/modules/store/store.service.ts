@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -14,14 +15,24 @@ import { Role } from '../../common/enums/role.enum';
 export class StoreService {
   constructor(private prisma: PrismaService) {}
 
-  // A store belongs to the client (the logged-in user) who creates it.
   async create(dto: CreateStoreDto, user: { id: string; role: string }) {
     const city = await this.prisma.city.findFirst({
       where: { id: dto.cityId, deletedAt: null },
     });
     if (!city) throw new NotFoundException('City not found');
 
-    const clientId = user.id;
+    // Admin can create a store on behalf of any client by passing clientId.
+    // A USER always owns the store themselves.
+    let clientId: string;
+    if (user.role === Role.ADMIN && dto.clientId) {
+      const client = await this.prisma.user.findFirst({
+        where: { id: dto.clientId, role: 'USER', deletedAt: null },
+      });
+      if (!client) throw new BadRequestException('Client not found or not a valid client account');
+      clientId = dto.clientId;
+    } else {
+      clientId = user.id;
+    }
 
     const duplicate = await this.prisma.store.findFirst({
       where: { clientId, storeCode: dto.storeCode, deletedAt: null },
@@ -75,6 +86,7 @@ export class StoreService {
             zone: { select: { id: true, name: true } },
           },
         },
+        client: { select: { id: true, name: true, email: true } },
         _count: { select: { candidates: true } },
       },
     });
