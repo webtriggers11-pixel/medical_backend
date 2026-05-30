@@ -4,8 +4,9 @@
  */
 import { CandidateType, Gender } from '../../common/enums/candidate.enums';
 
+// The store is chosen from a dropdown at upload time (not per row), so it is
+// not a CSV column. Every uploaded candidate is assigned to that one store.
 export const CANDIDATE_CSV_COLUMNS = [
-  'storeId',
   'name',
   'employeeCode',
   'mobile',
@@ -13,6 +14,7 @@ export const CANDIDATE_CSV_COLUMNS = [
   'age',
   'candidateType',
   'doj',
+  'appointmentDate',
   'pincode',
   'email',
   'panNumber',
@@ -22,7 +24,6 @@ type Column = (typeof CANDIDATE_CSV_COLUMNS)[number];
 export type CandidateCsvRow = Record<Column, string>;
 
 export interface NormalizedCandidate {
-  storeId: string;
   name: string;
   employeeCode: string;
   mobile: string;
@@ -30,14 +31,16 @@ export interface NormalizedCandidate {
   age: number;
   candidateType: CandidateType;
   doj: Date;
+  appointmentDate: Date;
   pincode: string;
   email: string;
   panNumber: string | null;
 }
 
-// Every column is required for bulk upload except panNumber.
+// Only panNumber is optional; every other column is required.
+const OPTIONAL_COLUMNS: Column[] = ['panNumber'];
 const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter(
-  (c) => c !== 'panNumber',
+  (c) => !OPTIONAL_COLUMNS.includes(c),
 );
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -136,6 +139,15 @@ function parseDate(value: string): Date | null | undefined {
   );
 }
 
+/** True when a (UTC-midnight) date is strictly after today — i.e. tomorrow or later. */
+function isFutureDate(date: Date): boolean {
+  const now = new Date();
+  const today = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  return date.getTime() > today.getTime();
+}
+
 /**
  * Validate and normalise a raw CSV row.
  * Returns either a ready-to-insert candidate or a single error string.
@@ -145,11 +157,9 @@ export function validateRow(
 ): { data: NormalizedCandidate } | { error: string } {
   const errors: string[] = [];
 
-  const storeId = row.storeId?.trim();
   const name = row.name?.trim();
   const employeeCode = row.employeeCode?.trim();
   const mobile = row.mobile?.trim();
-  if (!storeId) errors.push('storeId is required');
   if (!name) errors.push('name is required');
   if (!employeeCode) errors.push('employeeCode is required');
   if (!/^\d{10}$/.test(mobile || '')) errors.push('mobile must be 10 digits');
@@ -172,6 +182,17 @@ export function validateRow(
   const doj = parseDate(row.doj || '');
   if (!doj) errors.push('doj is required and must be a valid date');
 
+  // Required, must be a valid future date (tomorrow or later).
+  const appointmentRaw = (row.appointmentDate || '').trim();
+  const appointmentDate = parseDate(appointmentRaw);
+  if (!appointmentRaw) {
+    errors.push('appointmentDate is required');
+  } else if (appointmentDate === undefined) {
+    errors.push('appointmentDate must be a valid date (YYYY-MM-DD)');
+  } else if (appointmentDate && !isFutureDate(appointmentDate)) {
+    errors.push('appointmentDate must be a future date');
+  }
+
   const pincode = row.pincode?.trim() || '';
   if (!/^\d{6}$/.test(pincode)) errors.push('pincode must be 6 digits');
 
@@ -187,7 +208,6 @@ export function validateRow(
 
   return {
     data: {
-      storeId: storeId as string,
       name: name as string,
       employeeCode: employeeCode as string,
       mobile: mobile as string,
@@ -195,6 +215,7 @@ export function validateRow(
       age: ageNum,
       candidateType: candidateType as CandidateType,
       doj: doj as Date,
+      appointmentDate: appointmentDate as Date,
       pincode,
       email,
       panNumber: panNumber || null,
@@ -202,18 +223,31 @@ export function validateRow(
   };
 }
 
+/** Format a date as ISO YYYY-MM-DD (UTC). */
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 /** Build the downloadable bulk-upload template (header + one example row). */
 export function buildCandidateTemplate(): string {
   const header = CANDIDATE_CSV_COLUMNS.join(',');
+
+  // Dates use ISO YYYY-MM-DD. The store is chosen from a dropdown at upload
+  // time, so there is no store column here.
+  // appointmentDate is required and must be a future date; panNumber is optional.
+  const now = new Date();
+  const appointment = new Date(now);
+  appointment.setUTCDate(appointment.getUTCDate() + 7);
+
   const example = [
-    'paste-store-id-here',
     'John Doe',
     'EMP1234',
     '9999999999',
     'MALE',
     '20',
     'NEW_JOINER',
-    '2026-05-22',
+    toIsoDate(now),
+    toIsoDate(appointment),
     '781001',
     'john.doe@example.com',
     'ABCDE1234F',

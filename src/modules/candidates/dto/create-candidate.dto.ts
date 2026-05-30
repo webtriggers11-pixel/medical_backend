@@ -61,6 +61,13 @@ export class CreateCandidateDto {
   @IsISO8601({}, { message: 'doj must be a valid date' })
   doj: string;
 
+  @ApiProperty({
+    example: '2026-06-15',
+    description: 'Scheduled appointment date (ISO YYYY-MM-DD), must be in the future',
+  })
+  @IsISO8601({}, { message: 'appointmentDate must be a valid date' })
+  appointmentDate: string;
+
   @ApiProperty({ example: '781001' })
   @Matches(/^\d{6}$/, { message: 'pincode must be exactly 6 digits' })
   pincode: string;

@@ -75,12 +75,19 @@ export class CandidatesController {
   @ApiBody({
     schema: {
       type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        storeId: { type: 'string' },
+      },
     },
   })
   @ApiOperation({ summary: 'Bulk upload candidates from a CSV file' })
   @ApiResponse({ status: 201, description: 'Bulk upload result summary' })
-  bulkUpload(@UploadedFile() file: UploadedCsv, @CurrentUser() user: any) {
+  bulkUpload(
+    @UploadedFile() file: UploadedCsv,
+    @Body('storeId') storeId: string,
+    @CurrentUser() user: any,
+  ) {
     if (!file) {
       throw new BadRequestException(
         'No file uploaded. Field name must be "file".',
@@ -92,7 +99,8 @@ export class CandidatesController {
     }
     return this.candidatesService.bulkCreate(
       file.buffer.toString('utf-8'),
-      user?.id,
+      storeId,
+      user,
     );
   }
 }

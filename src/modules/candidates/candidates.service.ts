@@ -39,6 +39,7 @@ export class CandidatesService {
 
   async create(dto: CreateCandidateDto, userId?: string) {
     const store = await this.resolveStore(dto.storeId);
+    const appointmentDate = this.parseFutureAppointment(dto.appointmentDate);
 
     return this.prisma.candidate.create({
       data: {
@@ -51,6 +52,7 @@ export class CandidatesService {
         age: dto.age,
         doj: new Date(dto.doj),
         candidateType: dto.candidateType ?? CandidateType.NEW_JOINER,
+        appointmentDate,
         pincode: dto.pincode,
         email: dto.email,
         panNumber: dto.panNumber ?? null,
@@ -66,8 +68,27 @@ export class CandidatesService {
 
   async bulkCreate(
     fileContent: string,
-    userId?: string,
+    storeId: string,
+    user?: { id: string; role: string },
   ): Promise<BulkUploadResult> {
+    const userId = user?.id;
+
+    if (!storeId?.trim()) {
+      throw new BadRequestException('Please select a store before uploading.');
+    }
+
+    // The store is picked from a dropdown — resolve it once, scoped to the
+    // uploading client, so every candidate is assigned to that store & client.
+    const store = await this.prisma.store.findFirst({
+      where: { id: storeId, clientId: userId, deletedAt: null },
+      select: { id: true, clientId: true },
+    });
+    if (!store) {
+      throw new BadRequestException(
+        'Selected store was not found for your account.',
+      );
+    }
+
     let rows;
     try {
       rows = parseCandidateCsv(fileContent);
@@ -81,7 +102,6 @@ export class CandidatesService {
 
     const result: BulkUploadResult = { created: 0, skipped: 0, errors: [] };
     const seenMobiles = new Set<string>();
-    const storeClientCache = new Map<string, string | null>();
 
     for (let i = 0; i < rows.length; i++) {
       const rowNumber = i + 2; // +1 header, +1 for 1-based
@@ -110,30 +130,10 @@ export class CandidatesService {
       }
       seenMobiles.add(c.mobile);
 
-      // Resolve & cache the store's client; skip rows with an unknown store.
-      let clientId = storeClientCache.get(c.storeId);
-      if (clientId === undefined) {
-        const store = await this.prisma.store.findFirst({
-          where: { id: c.storeId, deletedAt: null },
-          select: { clientId: true },
-        });
-        clientId = store?.clientId ?? null;
-        storeClientCache.set(c.storeId, clientId);
-      }
-      if (!clientId) {
-        result.skipped++;
-        result.errors.push({
-          row: rowNumber,
-          mobile: c.mobile,
-          reason: `Unknown storeId "${c.storeId}"`,
-        });
-        continue;
-      }
-
       await this.prisma.candidate.create({
         data: {
-          storeId: c.storeId,
-          clientId,
+          storeId: store.id,
+          clientId: store.clientId,
           name: c.name,
           employeeCode: c.employeeCode,
           mobile: c.mobile,
@@ -141,6 +141,7 @@ export class CandidatesService {
           age: c.age,
           doj: c.doj,
           candidateType: c.candidateType,
+          appointmentDate: c.appointmentDate,
           pincode: c.pincode,
           email: c.email,
           panNumber: c.panNumber,
@@ -151,6 +152,28 @@ export class CandidatesService {
     }
 
     return result;
+  }
+
+  /**
+   * Validate that an appointment date is today's date or later (no past
+   * bookings). Returns a Date at UTC midnight.
+   */
+  private parseFutureAppointment(value: string): Date {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      throw new BadRequestException('appointmentDate must be a valid date');
+    }
+    const apptDay = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+    const now = new Date();
+    const today = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    if (apptDay <= today) {
+      throw new BadRequestException('appointmentDate must be a future date');
+    }
+    return apptDay;
   }
 
   private async resolveStore(storeId: string) {

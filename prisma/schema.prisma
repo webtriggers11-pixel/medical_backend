@@ -271,6 +271,7 @@ model Candidate {
   age           Int
   doj           DateTime
   candidateType CandidateType @default(NEW_JOINER)
+  appointmentDate DateTime?
   pincode       String
   email         String
   panNumber     String?
