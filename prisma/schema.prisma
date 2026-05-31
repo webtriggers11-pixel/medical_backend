@@ -367,6 +367,7 @@ model ReportFile {
   id           String   @id @default(cuid())
   reportId     String
   fileUrl      String
+  fileKey      String?
   fileName     String
   fileSize     Int?
   testsCovered Json     @default("[]")

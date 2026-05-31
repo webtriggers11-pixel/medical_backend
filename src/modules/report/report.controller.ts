@@ -27,7 +27,6 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { reportFileMulterOptions } from '../../common/storage/report-file.storage';
-import { REPORTS_PUBLIC_PREFIX } from '../../common/storage/storage.constants';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -44,11 +43,16 @@ export class ReportController {
   @UseInterceptors(FilesInterceptor('files', 20, reportFileMulterOptions))
   uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {
     if (!files?.length) throw new BadRequestException('No files uploaded');
-    return files.map((f) => ({
-      fileUrl: `${REPORTS_PUBLIC_PREFIX}/${f.filename}`,
-      fileName: f.originalname,
-      fileSize: f.size,
-    }));
+    return this.reportService.uploadFiles(files);
+  }
+
+  @Get('files/:fileId/url')
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({
+    summary: 'Get a (pre-signed) download URL for a report file',
+  })
+  getFileUrl(@Param('fileId') fileId: string, @CurrentUser() user: any) {
+    return this.reportService.getFileDownloadUrl(fileId, user);
   }
 
   @Post()
