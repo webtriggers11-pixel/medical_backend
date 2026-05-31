@@ -4,9 +4,13 @@
  */
 import { CandidateType, Gender } from '../../common/enums/candidate.enums';
 
-// The store is chosen from a dropdown at upload time (not per row), so it is
-// not a CSV column. Every uploaded candidate is assigned to that one store.
+// The store is chosen per row via the storeId column. zone/city are included
+// for the uploader's reference (so they can tell rows apart) — the candidate is
+// assigned to whatever store the storeId resolves to.
 export const CANDIDATE_CSV_COLUMNS = [
+  'zone',
+  'city',
+  'storeId',
   'name',
   'employeeCode',
   'mobile',
@@ -24,6 +28,7 @@ type Column = (typeof CANDIDATE_CSV_COLUMNS)[number];
 export type CandidateCsvRow = Record<Column, string>;
 
 export interface NormalizedCandidate {
+  storeId: string;
   name: string;
   employeeCode: string;
   mobile: string;
@@ -37,8 +42,9 @@ export interface NormalizedCandidate {
   panNumber: string | null;
 }
 
-// Only panNumber is optional; every other column is required.
-const OPTIONAL_COLUMNS: Column[] = ['panNumber'];
+// zone/city are reference-only columns and panNumber is optional; everything
+// else (including storeId) is required.
+const OPTIONAL_COLUMNS: Column[] = ['zone', 'city', 'panNumber'];
 const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter(
   (c) => !OPTIONAL_COLUMNS.includes(c),
 );
@@ -157,6 +163,9 @@ export function validateRow(
 ): { data: NormalizedCandidate } | { error: string } {
   const errors: string[] = [];
 
+  const storeId = row.storeId?.trim();
+  if (!storeId) errors.push('storeId is required');
+
   const name = row.name?.trim();
   const employeeCode = row.employeeCode?.trim();
   const mobile = row.mobile?.trim();
@@ -208,6 +217,7 @@ export function validateRow(
 
   return {
     data: {
+      storeId: storeId as string,
       name: name,
       employeeCode: employeeCode,
       mobile: mobile,
@@ -228,29 +238,56 @@ function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Build the downloadable bulk-upload template (header + one example row). */
-export function buildCandidateTemplate(): string {
+/** Escape a CSV cell (quote it if it contains a comma, quote or newline). */
+function csvCell(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/**
+ * Build the downloadable bulk-upload template (header + one example row per
+ * store). When `stores` is provided, each example row is pre-filled with that
+ * store's real zone, city and storeId so the uploader can copy the right id;
+ * otherwise a single placeholder row is emitted.
+ */
+export function buildCandidateTemplate(
+  stores: { zone: string; city: string; storeId: string }[] = [],
+): string {
   const header = CANDIDATE_CSV_COLUMNS.join(',');
 
-  // Dates use ISO YYYY-MM-DD. The store is chosen from a dropdown at upload
-  // time, so there is no store column here.
-  // appointmentDate is required and must be a future date; panNumber is optional.
+  // Dates use ISO YYYY-MM-DD. appointmentDate is required and must be a future
+  // date; panNumber is optional.
   const now = new Date();
   const appointment = new Date(now);
   appointment.setUTCDate(appointment.getUTCDate() + 7);
 
-  const example = [
-    'John Doe',
-    'EMP1234',
-    '9999999999',
-    'MALE',
-    '20',
-    'NEW_JOINER',
-    toIsoDate(now),
-    toIsoDate(appointment),
-    '781001',
-    'john.doe@example.com',
-    'ABCDE1234F',
-  ].join(',');
-  return `${header}\n${example}\n`;
+  const candidateExample: Record<string, string> = {
+    name: 'John Doe',
+    gender: 'MALE',
+    age: '20',
+    candidateType: 'NEW_JOINER',
+    doj: toIsoDate(now),
+    appointmentDate: toIsoDate(appointment),
+    pincode: '781001',
+    email: 'john.doe@example.com',
+    panNumber: 'ABCDE1234F',
+  };
+
+  const sources = stores.length
+    ? stores
+    : [{ zone: 'Zone name', city: 'City name', storeId: 'paste-store-id-here' }];
+
+  const lines = sources.map((s, i) => {
+    const record: Record<string, string> = {
+      zone: s.zone,
+      city: s.city,
+      storeId: s.storeId,
+      ...candidateExample,
+      // vary identity per example row so sample rows don't collide on mobile
+      employeeCode: `EMP${1234 + i}`,
+      mobile: String(9000000000 + i),
+    };
+    return CANDIDATE_CSV_COLUMNS.map((c) => csvCell(record[c] ?? '')).join(',');
+  });
+
+  return `${header}\n${lines.join('\n')}\n`;
 }

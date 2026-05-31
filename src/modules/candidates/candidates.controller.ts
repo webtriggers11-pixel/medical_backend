@@ -21,6 +21,7 @@ import {
   ApiResponse,
   ApiConsumes,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { CandidatesService } from './candidates.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
@@ -50,13 +51,28 @@ export class CandidatesController {
   @ApiOperation({
     summary: 'List candidates (scoped to own client for USER role)',
   })
+  @ApiQuery({ name: 'clientId', required: false })
+  @ApiQuery({ name: 'storeId', required: false })
+  @ApiQuery({
+    name: 'available',
+    required: false,
+    description:
+      'When true, only "requested" candidates (active, with an appointment, not yet booked)',
+  })
   @ApiResponse({ status: 200, description: 'List of candidates' })
   findAll(
     @CurrentUser() user: any,
+    @Query('clientId') clientId?: string,
+    @Query('storeId') storeId?: string,
+    @Query('available') available?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.candidatesService.findAll(user, { page, limit });
+    return this.candidatesService.findAll(
+      user,
+      { clientId, storeId, availableForBooking: available === 'true' },
+      { page, limit },
+    );
   }
 
   @Post()
@@ -78,8 +94,8 @@ export class CandidatesController {
 
   @Get('template')
   @ApiOperation({ summary: 'Download the bulk-upload CSV template' })
-  getTemplate(@Res() res: Response) {
-    const csv = this.candidatesService.getTemplate();
+  async getTemplate(@CurrentUser() user: any, @Res() res: Response) {
+    const csv = await this.candidatesService.getTemplate(user);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
@@ -96,17 +112,12 @@ export class CandidatesController {
       type: 'object',
       properties: {
         file: { type: 'string', format: 'binary' },
-        storeId: { type: 'string' },
       },
     },
   })
   @ApiOperation({ summary: 'Bulk upload candidates from a CSV file' })
   @ApiResponse({ status: 201, description: 'Bulk upload result summary' })
-  bulkUpload(
-    @UploadedFile() file: UploadedCsv,
-    @Body('storeId') storeId: string,
-    @CurrentUser() user: any,
-  ) {
+  bulkUpload(@UploadedFile() file: UploadedCsv, @CurrentUser() user: any) {
     if (!file) {
       throw new BadRequestException(
         'No file uploaded. Field name must be "file".',
@@ -118,7 +129,6 @@ export class CandidatesController {
     }
     return this.candidatesService.bulkCreate(
       file.buffer.toString('utf-8'),
-      storeId,
       user,
     );
   }

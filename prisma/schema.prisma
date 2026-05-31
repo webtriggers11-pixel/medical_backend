@@ -315,8 +315,28 @@ model Booking {
   lab             Lab?          @relation(fields: [labId], references: [id])
   client          User          @relation(fields: [clientId], references: [id])
   report          Report?
+  scheduleHistory BookingScheduleChange[]
 
   @@map("bookings")
+}
+
+// Audit trail of schedule changes for a booking — one row per reschedule, so
+// the original and every subsequent schedule is preserved.
+model BookingScheduleChange {
+  id               String    @id @default(cuid())
+  bookingId        String
+  previousDate     DateTime?
+  previousTimeSlot String?
+  newDate          DateTime?
+  newTimeSlot      String?
+  reason           String?
+  changedBy        String?
+  createdAt        DateTime  @default(now())
+
+  booking          Booking   @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("booking_schedule_changes")
 }
 
 model Report {

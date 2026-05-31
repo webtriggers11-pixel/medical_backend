@@ -19,6 +19,7 @@ import {
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -85,5 +86,19 @@ export class BookingController {
   })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
     return this.bookingService.updateStatus(id, dto);
+  }
+
+  @Patch(':id/reschedule')
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({
+    summary:
+      'Reschedule a booking (logs previous schedule to history). USER can reschedule only their own bookings.',
+  })
+  reschedule(
+    @Param('id') id: string,
+    @Body() dto: RescheduleBookingDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.bookingService.reschedule(id, dto, user);
   }
 }

@@ -23,6 +23,9 @@ const CANDIDATE_INCLUDE = {
       id: true,
       name: true,
       storeCode: true,
+      address: true,
+      storeHeadName: true,
+      storeHeadMobile: true,
       city: {
         select: {
           id: true,
@@ -47,10 +50,30 @@ export class CandidatesService {
 
   async findAll(
     user: { id: string; role: string },
+    filters: {
+      clientId?: string;
+      storeId?: string;
+      availableForBooking?: boolean;
+    } = {},
     pagination?: PaginationInput,
   ) {
     const where: any = { deletedAt: null };
-    if (user.role !== 'ADMIN') where.clientId = user.id;
+    // USER is locked to its own client; ADMIN may scope by clientId.
+    if (user.role !== 'ADMIN') {
+      where.clientId = user.id;
+    } else if (filters.clientId) {
+      where.clientId = filters.clientId;
+    }
+    if (filters.storeId) where.storeId = filters.storeId;
+    // "Requested" candidates: active, have an appointment, and not yet booked
+    // (no active/non-cancelled booking).
+    if (filters.availableForBooking) {
+      where.isActive = true;
+      where.appointmentDate = { not: null };
+      where.bookings = {
+        none: { status: { notIn: ['CANCELLED'] }, deletedAt: null },
+      };
+    }
     const query = {
       where,
       include: CANDIDATE_INCLUDE,
@@ -68,6 +91,18 @@ export class CandidatesService {
   async create(dto: CreateCandidateDto, userId?: string) {
     const store = await this.resolveStore(dto.storeId);
     const appointmentDate = this.parseFutureAppointment(dto.appointmentDate);
+
+    // Mobile is treated as a unique key — reject duplicates of any existing
+    // (non-deleted) candidate.
+    const existing = await this.prisma.candidate.findFirst({
+      where: { mobile: dto.mobile, deletedAt: null },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        `A candidate with mobile ${dto.mobile} already exists.`,
+      );
+    }
 
     return this.prisma.candidate.create({
       data: {
@@ -101,32 +136,43 @@ export class CandidatesService {
     });
   }
 
-  getTemplate(): string {
-    return buildCandidateTemplate();
+  async getTemplate(user: { id: string; role: string }): Promise<string> {
+    // Pre-fill the template with the uploader's stores so they can copy the
+    // correct storeId (and see its zone/city) into each candidate row.
+    const where: any = { deletedAt: null };
+    if (user.role !== 'ADMIN') where.clientId = user.id;
+    const stores = await this.prisma.store.findMany({
+      where,
+      select: {
+        id: true,
+        city: { select: { name: true, zone: { select: { name: true } } } },
+      },
+      orderBy: { name: 'asc' as const },
+    });
+    return buildCandidateTemplate(
+      stores.map((s) => ({
+        zone: s.city?.zone?.name ?? '',
+        city: s.city?.name ?? '',
+        storeId: s.id,
+      })),
+    );
   }
 
   async bulkCreate(
     fileContent: string,
-    storeId: string,
     user?: { id: string; role: string },
   ): Promise<BulkUploadResult> {
     const userId = user?.id;
 
-    if (!storeId?.trim()) {
-      throw new BadRequestException('Please select a store before uploading.');
-    }
-
-    // The store is picked from a dropdown — resolve it once, scoped to the
-    // uploading client, so every candidate is assigned to that store & client.
-    const store = await this.prisma.store.findFirst({
-      where: { id: storeId, clientId: userId, deletedAt: null },
+    // The store is chosen per row via the storeId column. Load the uploader's
+    // stores once so each row can be resolved (and scoped to their account).
+    const storeWhere: any = { deletedAt: null };
+    if (user?.role !== 'ADMIN') storeWhere.clientId = userId;
+    const stores = await this.prisma.store.findMany({
+      where: storeWhere,
       select: { id: true, clientId: true },
     });
-    if (!store) {
-      throw new BadRequestException(
-        'Selected store was not found for your account.',
-      );
-    }
+    const storeMap = new Map(stores.map((s) => [s.id, s]));
 
     let rows;
     try {
@@ -138,6 +184,19 @@ export class CandidatesService {
     if (rows.length === 0) {
       throw new BadRequestException('No candidate rows found in the file.');
     }
+
+    // Mobile is a unique key — pre-load mobiles that already exist in the DB so
+    // duplicates in the file are skipped (alongside in-file de-duplication).
+    const fileMobiles = rows
+      .map((r) => r.mobile?.trim())
+      .filter((m): m is string => !!m);
+    const existingCandidates = fileMobiles.length
+      ? await this.prisma.candidate.findMany({
+          where: { deletedAt: null, mobile: { in: fileMobiles } },
+          select: { mobile: true },
+        })
+      : [];
+    const existingMobiles = new Set(existingCandidates.map((c) => c.mobile));
 
     const result: BulkUploadResult = { created: 0, skipped: 0, errors: [] };
     const seenMobiles = new Set<string>();
@@ -158,12 +217,32 @@ export class CandidatesService {
 
       const c = validated.data;
 
+      const store = storeMap.get(c.storeId);
+      if (!store) {
+        result.skipped++;
+        result.errors.push({
+          row: rowNumber,
+          mobile: c.mobile,
+          reason: `storeId "${c.storeId}" not found for your account`,
+        });
+        continue;
+      }
+
       if (seenMobiles.has(c.mobile)) {
         result.skipped++;
         result.errors.push({
           row: rowNumber,
           mobile: c.mobile,
           reason: 'Duplicate mobile within file',
+        });
+        continue;
+      }
+      if (existingMobiles.has(c.mobile)) {
+        result.skipped++;
+        result.errors.push({
+          row: rowNumber,
+          mobile: c.mobile,
+          reason: 'A candidate with this mobile already exists',
         });
         continue;
       }

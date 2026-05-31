@@ -74,6 +74,20 @@ export class ReportService {
     return report;
   }
 
+  // All reports visible to the caller — ADMIN sees everything; a USER (client)
+  // sees only reports for their own candidates.
+  async findAllForUser(user: { id: string; role: string }) {
+    const where: any = { deletedAt: null };
+    if (user.role !== 'ADMIN') {
+      where.candidate = { clientId: user.id };
+    }
+    return this.prisma.report.findMany({
+      where,
+      include: REPORT_INCLUDE,
+      orderBy: { createdAt: 'desc' as const },
+    });
+  }
+
   async findByCandidate(candidateId: string, pagination?: PaginationInput) {
     const query = {
       where: { candidateId, deletedAt: null },

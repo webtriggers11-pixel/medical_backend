@@ -59,6 +59,15 @@ export class ReportController {
     return this.reportService.create(dto, user.id);
   }
 
+  @Get()
+  @Roles(Role.ADMIN, Role.USER)
+  @ApiOperation({
+    summary: 'List reports (ADMIN: all, USER: own candidates only)',
+  })
+  findAll(@CurrentUser() user: any) {
+    return this.reportService.findAllForUser(user);
+  }
+
   @Get('candidate/:candidateId')
   @Roles(Role.ADMIN, Role.USER)
   @ApiOperation({ summary: 'Get all reports for a candidate' })

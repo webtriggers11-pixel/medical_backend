@@ -28,14 +28,14 @@ export class LabService {
   }
 
   async findAll(cityId?: string, pagination?: PaginationInput) {
-    const where: any = { deletedAt: null, status: 'ACTIVE' };
+    const where: any = { deletedAt: null };
 
     if (cityId) {
       where.serviceCities = { path: '$', array_contains: cityId };
     }
 
     const query = {
-      where: { deletedAt: null },
+      where,
       orderBy: { name: 'asc' as const },
       include: { _count: { select: { panels: true } } },
     };
@@ -43,7 +43,7 @@ export class LabService {
     if (!wants) return this.prisma.lab.findMany(query);
     const [items, total] = await Promise.all([
       this.prisma.lab.findMany({ ...query, skip, take }),
-      this.prisma.lab.count({ where: query.where }),
+      this.prisma.lab.count({ where }),
     ]);
     return buildPaginated(items, total, page, limit);
   }

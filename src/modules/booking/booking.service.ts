@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
 import { Role } from '../../common/enums/role.enum';
 import {
   buildPaginated,
@@ -48,6 +49,7 @@ const BOOKING_INCLUDE = {
     },
   },
   client: { select: { id: true, name: true, email: true } },
+  scheduleHistory: { orderBy: { createdAt: 'asc' as const } },
 };
 
 @Injectable()
@@ -173,6 +175,42 @@ export class BookingService {
           scheduledDate: new Date(dto.scheduledDate),
         }),
         ...(dto.timeSlot && { timeSlot: dto.timeSlot }),
+      },
+      include: BOOKING_INCLUDE,
+    });
+  }
+
+  // Reschedule a booking: log the previous schedule to history, then move the
+  // booking to the new date/time. The original record is preserved.
+  // ADMIN can reschedule any booking; a USER (client) only their own.
+  async reschedule(
+    id: string,
+    dto: RescheduleBookingDto,
+    user: { id: string; role: string },
+  ) {
+    const where: any = { id, deletedAt: null };
+    if (user.role !== Role.ADMIN) where.clientId = user.id;
+    const booking = await this.prisma.booking.findFirst({ where });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    await this.prisma.bookingScheduleChange.create({
+      data: {
+        bookingId: id,
+        previousDate: booking.scheduledDate,
+        previousTimeSlot: booking.timeSlot,
+        newDate: new Date(dto.scheduledDate),
+        newTimeSlot: dto.timeSlot ?? booking.timeSlot,
+        reason: dto.reason,
+        changedBy: user.id,
+      },
+    });
+
+    return this.prisma.booking.update({
+      where: { id },
+      data: {
+        scheduledDate: new Date(dto.scheduledDate),
+        ...(dto.timeSlot && { timeSlot: dto.timeSlot }),
+        status: 'SCHEDULED',
       },
       include: BOOKING_INCLUDE,
     });
