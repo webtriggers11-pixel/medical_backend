@@ -45,8 +45,12 @@ export class CityController {
   @Roles(Role.ADMIN, Role.USER)
   @ApiOperation({ summary: 'List cities for a zone' })
   @ApiQuery({ name: 'zoneId', required: true })
-  findAll(@Query('zoneId') zoneId: string) {
-    return this.cityService.findAll(zoneId);
+  findAll(
+    @Query('zoneId') zoneId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.cityService.findAll(zoneId, { page, limit });
   }
 
   @Patch(':id')

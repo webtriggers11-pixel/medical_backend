@@ -208,9 +208,9 @@ export function validateRow(
 
   return {
     data: {
-      name: name as string,
-      employeeCode: employeeCode as string,
-      mobile: mobile as string,
+      name: name,
+      employeeCode: employeeCode,
+      mobile: mobile,
       gender: gender as Gender,
       age: ageNum,
       candidateType: candidateType as CandidateType,

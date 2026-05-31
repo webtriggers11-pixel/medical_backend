@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -34,8 +35,8 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List clients (users with role USER) — ADMIN only' })
   @ApiResponse({ status: 200, description: 'List of clients' })
-  findAll() {
-    return this.usersService.findClients();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.usersService.findClients({ page, limit });
   }
 
   @Get('me')

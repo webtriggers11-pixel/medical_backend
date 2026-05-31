@@ -48,8 +48,12 @@ export class BundledTestController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List bundled tests for a lab' })
   @ApiQuery({ name: 'labId', required: true })
-  findAll(@Query('labId') labId: string) {
-    return this.bundledTestService.findAll(labId);
+  findAll(
+    @Query('labId') labId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.bundledTestService.findAll(labId, { page, limit });
   }
 
   @Get(':id')

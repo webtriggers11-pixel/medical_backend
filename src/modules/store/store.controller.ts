@@ -46,8 +46,7 @@ export class StoreController {
   @Get()
   @Roles(Role.ADMIN, Role.USER)
   @ApiOperation({
-    summary:
-      "List the client's stores (optionally filtered by zone/city)",
+    summary: "List the client's stores (optionally filtered by zone/city)",
   })
   @ApiQuery({ name: 'cityId', required: false })
   @ApiQuery({ name: 'zoneId', required: false })
@@ -55,8 +54,10 @@ export class StoreController {
     @CurrentUser() user: any,
     @Query('cityId') cityId?: string,
     @Query('zoneId') zoneId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.storeService.findAll(user, { cityId, zoneId });
+    return this.storeService.findAll(user, { cityId, zoneId }, { page, limit });
   }
 
   @Get(':id')

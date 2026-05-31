@@ -1,16 +1,25 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { UPLOAD_ROOT } from './common/storage/storage.constants';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Security
-  app.use(helmet());
+  // Serve uploaded report files from /uploads (outside the /api/v1 prefix).
+  app.useStaticAssets(UPLOAD_ROOT, { prefix: '/uploads/' });
+
+  // Security — allow cross-origin file embeds (PDF preview) from the SPA.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.enableCors({
     origin: '*',
     credentials: false,

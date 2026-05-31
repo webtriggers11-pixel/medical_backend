@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBundledTestDto } from './dto/create-bundled-test.dto';
 import { UpdateBundledTestDto } from './dto/update-bundled-test.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class BundledTestService {
@@ -26,17 +31,24 @@ export class BundledTestService {
     });
   }
 
-  async findAll(labId: string) {
+  async findAll(labId: string, pagination?: PaginationInput) {
     const lab = await this.prisma.lab.findFirst({
       where: { id: labId, deletedAt: null },
     });
     if (!lab) throw new NotFoundException('Lab not found');
 
-    return this.prisma.labBundledTest.findMany({
+    const query = {
       where: { labId, deletedAt: null },
-      orderBy: { name: 'asc' },
+      orderBy: { name: 'asc' as const },
       include: { _count: { select: { panels: true } } },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.labBundledTest.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.labBundledTest.findMany({ ...query, skip, take }),
+      this.prisma.labBundledTest.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async findOne(id: string) {

@@ -7,7 +7,9 @@ export class UpdateBookingStatusDto {
   @IsEnum(BookingStatus)
   status: BookingStatus;
 
-  @ApiPropertyOptional({ description: 'Confirmed scheduled date (admin sets when confirming)' })
+  @ApiPropertyOptional({
+    description: 'Confirmed scheduled date (admin sets when confirming)',
+  })
   @IsDateString()
   @IsOptional()
   scheduledDate?: string;

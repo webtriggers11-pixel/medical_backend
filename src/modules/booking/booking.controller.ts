@@ -34,15 +34,20 @@ export class BookingController {
 
   @Get('requests')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Candidates awaiting booking (have appointment date, not yet booked)' })
-  findRequests() {
-    return this.bookingService.findRequests();
+  @ApiOperation({
+    summary:
+      'Candidates awaiting booking (have appointment date, not yet booked)',
+  })
+  findRequests(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.bookingService.findRequests({ page, limit });
   }
 
   @Post()
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Admin books a candidate by assigning a panel (→ SCHEDULED)' })
+  @ApiOperation({
+    summary: 'Admin books a candidate by assigning a panel (→ SCHEDULED)',
+  })
   create(@Body() dto: CreateBookingDto) {
     return this.bookingService.create(dto);
   }
@@ -56,8 +61,14 @@ export class BookingController {
     @CurrentUser() user: any,
     @Query('status') status?: string,
     @Query('clientId') clientId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.bookingService.findAll(user, { status, clientId });
+    return this.bookingService.findAll(
+      user,
+      { status, clientId },
+      { page, limit },
+    );
   }
 
   @Get(':id')
@@ -69,7 +80,9 @@ export class BookingController {
 
   @Patch(':id/status')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Admin advances booking status (visited, report, fit/unfit)' })
+  @ApiOperation({
+    summary: 'Admin advances booking status (visited, report, fit/unfit)',
+  })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateBookingStatusDto) {
     return this.bookingService.updateStatus(id, dto);
   }

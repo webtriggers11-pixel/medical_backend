@@ -63,7 +63,8 @@ export class CreateCandidateDto {
 
   @ApiProperty({
     example: '2026-06-15',
-    description: 'Scheduled appointment date (ISO YYYY-MM-DD), must be in the future',
+    description:
+      'Scheduled appointment date (ISO YYYY-MM-DD), must be in the future',
   })
   @IsISO8601({}, { message: 'appointmentDate must be a valid date' })
   appointmentDate: string;

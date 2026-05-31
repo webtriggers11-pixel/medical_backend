@@ -2,7 +2,10 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
+  Param,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -44,10 +47,16 @@ export class CandidatesController {
   constructor(private candidatesService: CandidatesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List candidates (scoped to own client for USER role)' })
+  @ApiOperation({
+    summary: 'List candidates (scoped to own client for USER role)',
+  })
   @ApiResponse({ status: 200, description: 'List of candidates' })
-  findAll(@CurrentUser() user: any) {
-    return this.candidatesService.findAll(user);
+  findAll(
+    @CurrentUser() user: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.candidatesService.findAll(user, { page, limit });
   }
 
   @Post()
@@ -55,6 +64,16 @@ export class CandidatesController {
   @ApiResponse({ status: 201, description: 'Candidate created' })
   create(@Body() dto: CreateCandidateDto, @CurrentUser() user: any) {
     return this.candidatesService.create(dto, user?.id);
+  }
+
+  @Patch(':id/approve')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Toggle candidate approval status' })
+  setApproval(
+    @Param('id') id: string,
+    @Body('isApproved') isApproved: boolean,
+  ) {
+    return this.candidatesService.setApproval(id, isApproved);
   }
 
   @Get('template')

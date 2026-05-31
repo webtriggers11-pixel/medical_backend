@@ -48,8 +48,12 @@ export class PanelController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List panels with optional filters' })
   @ApiQuery({ name: 'labId', required: false })
-  findAll(@Query('labId') labId?: string) {
-    return this.panelService.findAll({ labId });
+  findAll(
+    @Query('labId') labId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.panelService.findAll({ labId }, { page, limit });
   }
 
   @Get(':id')
@@ -94,8 +98,12 @@ export class PanelController {
   @Get(':id/pricing')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all client pricing for a panel' })
-  getClientPricing(@Param('id') panelId: string) {
-    return this.panelService.getClientPricing(panelId);
+  getClientPricing(
+    @Param('id') panelId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.panelService.getClientPricing(panelId, { page, limit });
   }
 
   @Delete(':id/pricing/:clientId')

@@ -45,8 +45,12 @@ export class LabController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all labs, optionally filtered by cityId' })
   @ApiQuery({ name: 'cityId', required: false })
-  findAll(@Query('cityId') cityId?: string) {
-    return this.labService.findAll(cityId);
+  findAll(
+    @Query('cityId') cityId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.labService.findAll(cityId, { page, limit });
   }
 
   @Get(':id')

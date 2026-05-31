@@ -6,6 +6,11 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateZoneDto } from './dto/create-zone.dto';
 import { UpdateZoneDto } from './dto/update-zone.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class ZoneService {
@@ -21,12 +26,19 @@ export class ZoneService {
     });
   }
 
-  async findAll() {
-    return this.prisma.zone.findMany({
+  async findAll(pagination?: PaginationInput) {
+    const query = {
       where: { deletedAt: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'asc' as const },
       include: { _count: { select: { cities: true } } },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.zone.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.zone.findMany({ ...query, skip, take }),
+      this.prisma.zone.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async update(id: string, dto: UpdateZoneDto) {

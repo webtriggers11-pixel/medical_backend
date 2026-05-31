@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class LabService {
@@ -22,18 +27,25 @@ export class LabService {
     });
   }
 
-  async findAll(cityId?: string) {
+  async findAll(cityId?: string, pagination?: PaginationInput) {
     const where: any = { deletedAt: null, status: 'ACTIVE' };
 
     if (cityId) {
       where.serviceCities = { path: '$', array_contains: cityId };
     }
 
-    return this.prisma.lab.findMany({
+    const query = {
       where: { deletedAt: null },
-      orderBy: { name: 'asc' },
+      orderBy: { name: 'asc' as const },
       include: { _count: { select: { panels: true } } },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.lab.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.lab.findMany({ ...query, skip, take }),
+      this.prisma.lab.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async findOne(id: string) {

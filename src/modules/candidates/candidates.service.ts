@@ -11,9 +11,27 @@ import {
   parseCandidateCsv,
   validateRow,
 } from './candidate-csv.util';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 const CANDIDATE_INCLUDE = {
-  store: { select: { id: true, name: true, storeCode: true } },
+  store: {
+    select: {
+      id: true,
+      name: true,
+      storeCode: true,
+      city: {
+        select: {
+          id: true,
+          name: true,
+          zone: { select: { id: true, name: true } },
+        },
+      },
+    },
+  },
   client: { select: { id: true, name: true, email: true } },
 };
 
@@ -27,14 +45,24 @@ export interface BulkUploadResult {
 export class CandidatesService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(user: { id: string; role: string }) {
+  async findAll(
+    user: { id: string; role: string },
+    pagination?: PaginationInput,
+  ) {
     const where: any = { deletedAt: null };
     if (user.role !== 'ADMIN') where.clientId = user.id;
-    return this.prisma.candidate.findMany({
+    const query = {
       where,
       include: CANDIDATE_INCLUDE,
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: 'desc' as const },
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.candidate.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.candidate.findMany({ ...query, skip, take }),
+      this.prisma.candidate.count({ where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async create(dto: CreateCandidateDto, userId?: string) {
@@ -59,6 +87,17 @@ export class CandidatesService {
         createdBy: userId,
       },
       include: CANDIDATE_INCLUDE,
+    });
+  }
+
+  async setApproval(id: string, isApproved: boolean) {
+    return this.prisma.candidate.update({
+      where: { id },
+      data: { isApproved },
+      include: {
+        store: { select: { id: true, name: true, storeCode: true } },
+        client: { select: { id: true, name: true, email: true } },
+      },
     });
   }
 

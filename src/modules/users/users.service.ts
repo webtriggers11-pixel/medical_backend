@@ -7,6 +7,11 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '../../common/enums/role.enum';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 const USER_SELECT = {
   id: true,
@@ -25,12 +30,19 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   // Clients are users with role USER. Soft-deleted clients are hidden.
-  async findClients() {
-    return this.prisma.user.findMany({
+  async findClients(pagination?: PaginationInput) {
+    const query = {
       where: { role: Role.USER, deletedAt: null },
       select: USER_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: 'desc' as const },
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.user.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({ ...query, skip, take }),
+      this.prisma.user.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   // Returns the client (role USER, not deleted) or throws.

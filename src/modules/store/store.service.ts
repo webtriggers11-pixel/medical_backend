@@ -10,6 +10,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { Role } from '../../common/enums/role.enum';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class StoreService {
@@ -28,7 +33,10 @@ export class StoreService {
       const client = await this.prisma.user.findFirst({
         where: { id: dto.clientId, role: 'USER', deletedAt: null },
       });
-      if (!client) throw new BadRequestException('Client not found or not a valid client account');
+      if (!client)
+        throw new BadRequestException(
+          'Client not found or not a valid client account',
+        );
       clientId = dto.clientId;
     } else {
       clientId = user.id;
@@ -38,7 +46,9 @@ export class StoreService {
       where: { clientId, storeCode: dto.storeCode, deletedAt: null },
     });
     if (duplicate) {
-      throw new ConflictException(`Store code "${dto.storeCode}" already exists`);
+      throw new ConflictException(
+        `Store code "${dto.storeCode}" already exists`,
+      );
     }
 
     return this.prisma.store.create({
@@ -65,6 +75,7 @@ export class StoreService {
   async findAll(
     user: { id: string; role: string },
     filters: { cityId?: string; zoneId?: string } = {},
+    pagination?: PaginationInput,
   ) {
     const where: Prisma.StoreWhereInput = { deletedAt: null };
 
@@ -74,9 +85,9 @@ export class StoreService {
     if (filters.cityId) where.cityId = filters.cityId;
     if (filters.zoneId) where.city = { zoneId: filters.zoneId };
 
-    return this.prisma.store.findMany({
+    const query = {
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' as const },
       include: {
         city: {
           select: {
@@ -89,7 +100,14 @@ export class StoreService {
         client: { select: { id: true, name: true, email: true } },
         _count: { select: { candidates: true } },
       },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.store.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.store.findMany({ ...query, skip, take }),
+      this.prisma.store.count({ where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async findOne(id: string, user: { id: string; role: string }) {
@@ -106,7 +124,11 @@ export class StoreService {
     return store;
   }
 
-  async update(id: string, dto: UpdateStoreDto, user: { id: string; role: string }) {
+  async update(
+    id: string,
+    dto: UpdateStoreDto,
+    user: { id: string; role: string },
+  ) {
     const store = await this.findStoreOrFail(id);
     this.assertClientAccess(store.clientId, user);
 
@@ -131,7 +153,10 @@ export class StoreService {
     return store;
   }
 
-  private assertClientAccess(clientId: string, user: { id: string; role: string }) {
+  private assertClientAccess(
+    clientId: string,
+    user: { id: string; role: string },
+  ) {
     if (user.role !== Role.ADMIN && clientId !== user.id) {
       throw new ForbiddenException('Access denied');
     }

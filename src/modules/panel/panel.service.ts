@@ -7,6 +7,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { SetClientPricingDto } from './dto/set-client-pricing.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class PanelService {
@@ -42,17 +47,25 @@ export class PanelService {
     });
   }
 
-  async findAll(filters: { labId?: string }) {
+  async findAll(filters: { labId?: string }, pagination?: PaginationInput) {
     const where: any = { deletedAt: null };
 
     if (filters.labId) {
       where.labId = filters.labId;
     }
 
-    return this.prisma.panel.findMany({
+    const query = {
       where,
       include: {
-        lab: { select: { id: true, name: true, serviceCities: true } },
+        lab: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            pincode: true,
+            serviceCities: true,
+          },
+        },
         bundledTest: { select: { id: true, name: true, testsIncluded: true } },
         clientPricing: {
           where: { deletedAt: null },
@@ -61,15 +74,30 @@ export class PanelService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: 'desc' as const },
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.panel.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.panel.findMany({ ...query, skip, take }),
+      this.prisma.panel.count({ where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async findOne(id: string) {
     const panel = await this.prisma.panel.findFirst({
       where: { id, deletedAt: null },
       include: {
-        lab: { select: { id: true, name: true, serviceCities: true } },
+        lab: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            pincode: true,
+            serviceCities: true,
+          },
+        },
         bundledTest: {
           select: {
             id: true,
@@ -80,7 +108,9 @@ export class PanelService {
         },
         clientPricing: {
           where: { deletedAt: null },
-          include: { client: { select: { id: true, name: true, email: true } } },
+          include: {
+            client: { select: { id: true, name: true, email: true } },
+          },
         },
       },
     });
@@ -160,16 +190,23 @@ export class PanelService {
     });
   }
 
-  async getClientPricing(panelId: string) {
+  async getClientPricing(panelId: string, pagination?: PaginationInput) {
     const panel = await this.prisma.panel.findFirst({
       where: { id: panelId, deletedAt: null },
     });
     if (!panel) throw new NotFoundException('Panel not found');
 
-    return this.prisma.clientPanelPricing.findMany({
+    const query = {
       where: { panelId, deletedAt: null },
       include: { client: { select: { id: true, name: true, email: true } } },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.clientPanelPricing.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.clientPanelPricing.findMany({ ...query, skip, take }),
+      this.prisma.clientPanelPricing.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async removeClientPricing(panelId: string, clientId: string, userId: string) {

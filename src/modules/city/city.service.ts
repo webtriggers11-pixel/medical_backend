@@ -6,6 +6,11 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCityDto } from './dto/create-city.dto';
 import { UpdateCityDto } from './dto/update-city.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class CityService {
@@ -27,12 +32,19 @@ export class CityService {
     });
   }
 
-  async findAll(zoneId: string) {
-    return this.prisma.city.findMany({
+  async findAll(zoneId: string, pagination?: PaginationInput) {
+    const query = {
       where: { zoneId, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'asc' as const },
       include: { _count: { select: { stores: true } } },
-    });
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.city.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.city.findMany({ ...query, skip, take }),
+      this.prisma.city.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async update(id: string, dto: UpdateCityDto) {

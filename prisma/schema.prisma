@@ -278,6 +278,7 @@ model Candidate {
   email         String
   panNumber     String?
   isActive      Boolean       @default(true)
+  isApproved    Boolean       @default(false)
   createdAt     DateTime      @default(now())
   createdBy     String?
   deletedAt     DateTime?
@@ -324,6 +325,9 @@ model Report {
   candidateId    String
   reportUrl      String
   fitnessStatus  FitnessStatus
+  labInternalRef String?
+  isInsure       Boolean       @default(false)
+  approvalStatus Boolean       @default(false)
   uploadedAt     DateTime      @default(now())
   uploadedBy     String
   remarks        String?
@@ -334,8 +338,24 @@ model Report {
 
   booking        Booking       @relation(fields: [bookingId], references: [id])
   candidate      Candidate     @relation(fields: [candidateId], references: [id])
+  files          ReportFile[]
 
   @@map("reports")
+}
+
+model ReportFile {
+  id           String   @id @default(cuid())
+  reportId     String
+  fileUrl      String
+  fileName     String
+  fileSize     Int?
+  testsCovered Json     @default("[]")
+  createdAt    DateTime @default(now())
+
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("report_files")
 }
 
 // ─── System ───────────────────────────────────────────────────

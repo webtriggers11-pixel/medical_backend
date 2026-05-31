@@ -7,23 +7,45 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { Role } from '../../common/enums/role.enum';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 const BOOKING_INCLUDE = {
   candidate: {
     select: {
-      id: true, name: true, employeeCode: true, mobile: true, panNumber: true,
-      gender: true, age: true, storeId: true,
+      id: true,
+      name: true,
+      employeeCode: true,
+      mobile: true,
+      panNumber: true,
+      gender: true,
+      age: true,
+      storeId: true,
       store: { select: { id: true, name: true, storeCode: true } },
     },
   },
   panel: {
     select: {
-      id: true, name: true, mrp: true, costToVendor: true,
+      id: true,
+      name: true,
+      mrp: true,
+      costToVendor: true,
       bundledTest: { select: { id: true, name: true, testsIncluded: true } },
     },
   },
   lab: {
-    select: { id: true, name: true, contactName: true, contactMobile: true, email: true, address: true, pincode: true },
+    select: {
+      id: true,
+      name: true,
+      contactName: true,
+      contactMobile: true,
+      email: true,
+      address: true,
+      pincode: true,
+    },
   },
   client: { select: { id: true, name: true, email: true } },
 };
@@ -35,22 +57,28 @@ export class BookingService {
   // ── Admin: candidates awaiting booking ─────────────────────────
   // A "booking request" = candidate with an appointmentDate but no active
   // booking yet. HR sets appointmentDate when creating the candidate.
-  async findRequests() {
-    const candidates = await this.prisma.candidate.findMany({
+  async findRequests(pagination?: PaginationInput) {
+    const query = {
       where: {
         deletedAt: null,
         appointmentDate: { not: null },
         bookings: {
-          none: { status: { notIn: ['CANCELLED'] }, deletedAt: null },
+          none: { status: { notIn: ['CANCELLED' as const] }, deletedAt: null },
         },
       },
       include: {
         store: { select: { id: true, name: true, storeCode: true } },
         client: { select: { id: true, name: true, email: true } },
       },
-      orderBy: { appointmentDate: 'asc' },
-    });
-    return candidates;
+      orderBy: { appointmentDate: 'asc' as const },
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.candidate.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.candidate.findMany({ ...query, skip, take }),
+      this.prisma.candidate.count({ where: query.where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   // ── Admin books a candidate by assigning a panel ───────────────
@@ -59,10 +87,6 @@ export class BookingService {
       where: { id: dto.candidateId, deletedAt: null },
     });
     if (!candidate) throw new NotFoundException('Candidate not found');
-    if (!candidate.appointmentDate) {
-      throw new BadRequestException('Candidate has no appointment date set');
-    }
-
     const panel = await this.prisma.panel.findFirst({
       where: { id: dto.panelId, deletedAt: null, status: 'ACTIVE' },
     });
@@ -80,9 +104,14 @@ export class BookingService {
 
     // Client-specific pricing for this panel; fall back to MRP
     const pricing = await this.prisma.clientPanelPricing.findFirst({
-      where: { clientId: candidate.clientId, panelId: dto.panelId, deletedAt: null },
+      where: {
+        clientId: candidate.clientId,
+        panelId: dto.panelId,
+        deletedAt: null,
+      },
     });
     const amountCharged = pricing ? pricing.costToClient : panel.mrp;
+    const reqDate = candidate.appointmentDate ?? new Date();
 
     return this.prisma.booking.create({
       data: {
@@ -90,8 +119,10 @@ export class BookingService {
         panelId: panel.id,
         labId: panel.labId,
         clientId: candidate.clientId,
-        reqDate: candidate.appointmentDate,
-        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : candidate.appointmentDate,
+        reqDate,
+        scheduledDate: dto.scheduledDate
+          ? new Date(dto.scheduledDate)
+          : reqDate,
         timeSlot: dto.timeSlot,
         amountCharged,
         amountToVendor: panel.costToVendor,
@@ -104,6 +135,7 @@ export class BookingService {
   async findAll(
     user: { id: string; role: string },
     filters: { status?: string; clientId?: string } = {},
+    pagination?: PaginationInput,
   ) {
     const where: any = { deletedAt: null };
     if (user.role !== Role.ADMIN) {
@@ -113,11 +145,18 @@ export class BookingService {
     }
     if (filters.status) where.status = filters.status;
 
-    return this.prisma.booking.findMany({
+    const query = {
       where,
       include: BOOKING_INCLUDE,
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: 'desc' as const },
+    };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.booking.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.booking.findMany({ ...query, skip, take }),
+      this.prisma.booking.count({ where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async updateStatus(id: string, dto: UpdateBookingStatusDto) {
@@ -130,7 +169,9 @@ export class BookingService {
       where: { id },
       data: {
         status: dto.status,
-        ...(dto.scheduledDate && { scheduledDate: new Date(dto.scheduledDate) }),
+        ...(dto.scheduledDate && {
+          scheduledDate: new Date(dto.scheduledDate),
+        }),
         ...(dto.timeSlot && { timeSlot: dto.timeSlot }),
       },
       include: BOOKING_INCLUDE,

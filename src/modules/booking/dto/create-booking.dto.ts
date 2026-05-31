@@ -12,7 +12,10 @@ export class CreateBookingDto {
   @IsString()
   panelId: string;
 
-  @ApiPropertyOptional({ description: 'Override scheduled date (defaults to candidate appointmentDate)' })
+  @ApiPropertyOptional({
+    description:
+      'Override scheduled date (defaults to candidate appointmentDate)',
+  })
   @IsDateString()
   @IsOptional()
   scheduledDate?: string;
