@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsArray, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePanelDto {
@@ -7,9 +7,17 @@ export class CreatePanelDto {
   @IsString()
   labId: string;
 
+  /* BUNDLED TEST — replaced by testMasterIds
   @ApiProperty()
   @IsString()
   bundledTestId: string;
+  */
+
+  @ApiProperty({ type: [String], description: 'One or more TestMaster IDs to link to this panel' })
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  testMasterIds: string[];
 
   @ApiProperty()
   @IsString()

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { Role } from '../../common/enums/role.enum';
@@ -18,7 +19,10 @@ import {
 
 @Injectable()
 export class StoreService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   async create(dto: CreateStoreDto, user: { id: string; role: string }) {
     const city = await this.prisma.city.findFirst({
@@ -51,22 +55,26 @@ export class StoreService {
       );
     }
 
-    return this.prisma.store.create({
-      data: {
-        clientId,
-        cityId: dto.cityId,
-        storeCode: dto.storeCode,
-        name: dto.name,
-        address: dto.address,
-        storeHeadName: dto.storeHeadName,
-        storeHeadMobile: dto.storeHeadMobile,
-        email: dto.email,
-        storeContact: dto.storeContact,
-        storeAsstHeadName: dto.storeAsstHeadName,
-        storeAsstHeadMobile: dto.storeAsstHeadMobile,
-        createdBy: user.id,
-      },
-      include: { city: { select: { name: true } } },
+    return this.prisma.$transaction(async (tx) => {
+      const storeId = await this.idSeq.generate('S', tx);
+      return tx.store.create({
+        data: {
+          storeId,
+          clientId,
+          cityId: dto.cityId,
+          storeCode: dto.storeCode,
+          name: dto.name,
+          address: dto.address,
+          storeHeadName: dto.storeHeadName,
+          storeHeadMobile: dto.storeHeadMobile,
+          email: dto.email,
+          storeContact: dto.storeContact,
+          storeAsstHeadName: dto.storeAsstHeadName,
+          storeAsstHeadMobile: dto.storeAsstHeadMobile,
+          createdBy: user.id,
+        },
+        include: { city: { select: { name: true } } },
+      });
     });
   }
 

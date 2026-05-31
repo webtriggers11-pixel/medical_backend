@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { RescheduleBookingDto } from './dto/reschedule-booking.dto';
@@ -54,7 +55,10 @@ const BOOKING_INCLUDE = {
 
 @Injectable()
 export class BookingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   // ── Admin: candidates awaiting booking ─────────────────────────
   // A "booking request" = candidate with an appointmentDate but no active
@@ -115,22 +119,26 @@ export class BookingService {
     const amountCharged = pricing ? pricing.costToClient : panel.mrp;
     const reqDate = candidate.appointmentDate ?? new Date();
 
-    return this.prisma.booking.create({
-      data: {
-        candidateId: candidate.id,
-        panelId: panel.id,
-        labId: panel.labId,
-        clientId: candidate.clientId,
-        reqDate,
-        scheduledDate: dto.scheduledDate
-          ? new Date(dto.scheduledDate)
-          : reqDate,
-        timeSlot: dto.timeSlot,
-        amountCharged,
-        amountToVendor: panel.costToVendor,
-        status: 'SCHEDULED',
-      },
-      include: BOOKING_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const bookingId = await this.idSeq.generate('B', tx);
+      return tx.booking.create({
+        data: {
+          bookingId,
+          candidateId: candidate.id,
+          panelId: panel.id,
+          labId: panel.labId,
+          clientId: candidate.clientId,
+          reqDate,
+          scheduledDate: dto.scheduledDate
+            ? new Date(dto.scheduledDate)
+            : reqDate,
+          timeSlot: dto.timeSlot,
+          amountCharged,
+          amountToVendor: panel.costToVendor,
+          status: 'SCHEDULED',
+        },
+        include: BOOKING_INCLUDE,
+      });
     });
   }
 

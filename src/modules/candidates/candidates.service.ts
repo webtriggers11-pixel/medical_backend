@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { CandidateType } from '../../common/enums/candidate.enums';
 import {
@@ -46,7 +47,10 @@ export interface BulkUploadResult {
 
 @Injectable()
 export class CandidatesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   async findAll(
     user: { id: string; role: string },
@@ -104,24 +108,28 @@ export class CandidatesService {
       );
     }
 
-    return this.prisma.candidate.create({
-      data: {
-        storeId: store.id,
-        clientId: store.clientId,
-        name: dto.name,
-        employeeCode: dto.employeeCode,
-        mobile: dto.mobile,
-        gender: dto.gender,
-        age: dto.age,
-        doj: new Date(dto.doj),
-        candidateType: dto.candidateType ?? CandidateType.NEW_JOINER,
-        appointmentDate,
-        pincode: dto.pincode,
-        email: dto.email,
-        panNumber: dto.panNumber ?? null,
-        createdBy: userId,
-      },
-      include: CANDIDATE_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const candidateId = await this.idSeq.generate('C', tx);
+      return tx.candidate.create({
+        data: {
+          candidateId,
+          storeId: store.id,
+          clientId: store.clientId,
+          name: dto.name,
+          employeeCode: dto.employeeCode,
+          mobile: dto.mobile,
+          gender: dto.gender,
+          age: dto.age,
+          doj: new Date(dto.doj),
+          candidateType: dto.candidateType ?? CandidateType.NEW_JOINER,
+          appointmentDate,
+          pincode: dto.pincode,
+          email: dto.email,
+          panNumber: dto.panNumber ?? null,
+          createdBy: userId,
+        },
+        include: CANDIDATE_INCLUDE,
+      });
     });
   }
 
@@ -248,23 +256,27 @@ export class CandidatesService {
       }
       seenMobiles.add(c.mobile);
 
-      await this.prisma.candidate.create({
-        data: {
-          storeId: store.id,
-          clientId: store.clientId,
-          name: c.name,
-          employeeCode: c.employeeCode,
-          mobile: c.mobile,
-          gender: c.gender,
-          age: c.age,
-          doj: c.doj,
-          candidateType: c.candidateType,
-          appointmentDate: c.appointmentDate,
-          pincode: c.pincode,
-          email: c.email,
-          panNumber: c.panNumber,
-          createdBy: userId,
-        },
+      await this.prisma.$transaction(async (tx) => {
+        const candidateId = await this.idSeq.generate('C', tx);
+        await tx.candidate.create({
+          data: {
+            candidateId,
+            storeId: store.id,
+            clientId: store.clientId,
+            name: c.name,
+            employeeCode: c.employeeCode,
+            mobile: c.mobile,
+            gender: c.gender,
+            age: c.age,
+            doj: c.doj,
+            candidateType: c.candidateType,
+            appointmentDate: c.appointmentDate,
+            pincode: c.pincode,
+            email: c.email,
+            panNumber: c.panNumber,
+            createdBy: userId,
+          },
+        });
       });
       result.created++;
     }

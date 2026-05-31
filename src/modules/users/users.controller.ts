@@ -18,6 +18,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -70,6 +71,15 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Client not found' })
   setActive(@Param('id') id: string, @Body() dto: UpdateClientDto) {
     return this.usersService.setActive(id, dto.isActive);
+  }
+
+  @Patch(':id/reset-password')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: "Reset a client's login password (ADMIN only)" })
+  @ApiResponse({ status: 200, description: 'Password reset' })
+  @ApiResponse({ status: 404, description: 'Client not found' })
+  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    return this.usersService.resetPassword(id, dto.password);
   }
 
   @Delete(':id')

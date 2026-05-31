@@ -40,6 +40,11 @@ enum PanelStatus {
   INACTIVE
 }
 
+enum TestMasterStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // ─── Candidate / Booking enums ────────────────────────────────
 enum Gender {
   MALE
@@ -152,6 +157,7 @@ model City {
 
 model Store {
   id              String      @id @default(cuid())
+  storeId         String?     @unique
   clientId        String
   cityId          String
   storeCode           String
@@ -180,6 +186,7 @@ model Store {
 // ─── Lab & Panel ──────────────────────────────────────────────
 model Lab {
   id             String    @id @default(cuid())
+  labId          String?   @unique
   name           String
   contactName    String
   contactMobile  String
@@ -221,7 +228,7 @@ model LabBundledTest {
 model Panel {
   id             String      @id @default(cuid())
   labId          String
-  bundledTestId  String
+  bundledTestId  String?
   name           String
   timing         String?
   mrp            Decimal     @db.Decimal(10, 2)
@@ -233,9 +240,10 @@ model Panel {
   deletedAt      DateTime?
   deletedBy      String?
 
-  lab            Lab            @relation(fields: [labId], references: [id])
-  bundledTest    LabBundledTest @relation(fields: [bundledTestId], references: [id])
+  lab            Lab             @relation(fields: [labId], references: [id])
+  bundledTest    LabBundledTest? @relation(fields: [bundledTestId], references: [id])
   clientPricing  ClientPanelPricing[]
+  panelTests     PanelTest[]
   bookings       Booking[]
 
   @@map("panels")
@@ -264,6 +272,7 @@ model ClientPanelPricing {
 // ─── Candidates & Bookings ────────────────────────────────────
 model Candidate {
   id            String        @id @default(cuid())
+  candidateId   String?       @unique
   storeId       String
   clientId      String
   name          String
@@ -294,6 +303,7 @@ model Candidate {
 
 model Booking {
   id              String        @id @default(cuid())
+  bookingId       String?       @unique
   candidateId     String
   panelId         String?
   labId           String?
@@ -392,4 +402,45 @@ model Notification {
   createdBy String?
 
   @@map("notifications")
+}
+
+// ─── ID Sequence counter ──────────────────────────────────────
+// One row per module prefix. Incremented atomically inside a
+// $transaction whenever a new record is created.
+model IdSequence {
+  prefix  String @id   // e.g. "B", "S", "L", "C"
+  nextVal Int    @default(1)
+
+  @@map("id_sequences")
+}
+
+// ─── Test Master ──────────────────────────────────────────────
+// Global diagnostic test catalog — not scoped to any lab.
+// id is @id (PRIMARY KEY) which is implicitly unique; no separate @unique needed.
+model TestMaster {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?          @db.VarChar(255)
+  status      TestMasterStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  createdBy   String?
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  panelTests  PanelTest[]
+
+  @@map("test_masters")
+}
+
+// Join table — a Panel links to one or more TestMaster records.
+model PanelTest {
+  id           String     @id @default(cuid())
+  panelId      String
+  testMasterId String
+
+  panel        Panel      @relation(fields: [panelId],      references: [id])
+  testMaster   TestMaster @relation(fields: [testMasterId], references: [id])
+
+  @@unique([panelId, testMasterId])
+  @@map("panel_tests")
 }

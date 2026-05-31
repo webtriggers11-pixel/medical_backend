@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateLabDto } from './dto/create-lab.dto';
 import { UpdateLabDto } from './dto/update-lab.dto';
 import {
@@ -10,20 +11,27 @@ import {
 
 @Injectable()
 export class LabService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   async create(dto: CreateLabDto, userId: string) {
-    return this.prisma.lab.create({
-      data: {
-        name: dto.name,
-        contactName: dto.contactName,
-        contactMobile: dto.contactMobile,
-        email: dto.email,
-        address: dto.address,
-        pincode: dto.pincode,
-        serviceCities: dto.serviceCities ?? [],
-        createdBy: userId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const labId = await this.idSeq.generate('L', tx);
+      return tx.lab.create({
+        data: {
+          labId,
+          name: dto.name,
+          contactName: dto.contactName,
+          contactMobile: dto.contactMobile,
+          email: dto.email,
+          address: dto.address,
+          pincode: dto.pincode,
+          serviceCities: dto.serviceCities ?? [],
+          createdBy: userId,
+        },
+      });
     });
   }
 

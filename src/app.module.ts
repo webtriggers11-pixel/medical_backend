@@ -14,6 +14,8 @@ import { LabModule } from './modules/lab/lab.module';
 import { PanelModule } from './modules/panel/panel.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { ReportModule } from './modules/report/report.module';
+import { TestMasterModule } from './modules/test-master/test-master.module';
+import { IdSequenceModule } from './common/id-sequence/id-sequence.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { ReportModule } from './modules/report/report.module';
     PanelModule,
     BookingModule,
     ReportModule,
+    TestMasterModule,
+    IdSequenceModule,
   ],
 })
 export class AppModule {}

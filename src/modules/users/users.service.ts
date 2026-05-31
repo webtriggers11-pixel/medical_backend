@@ -76,6 +76,18 @@ export class UsersService {
     return { id, deleted: true };
   }
 
+  // Admin resets a client's login password. Re-hashes with the same cost as
+  // account creation. The new password applies to future logins immediately.
+  async resetPassword(id: string, newPassword: string) {
+    await this.getClientOrThrow(id);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+    return { id, passwordReset: true };
+  }
+
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },

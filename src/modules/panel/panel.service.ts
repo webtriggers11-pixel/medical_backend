@@ -13,6 +13,30 @@ import {
   type PaginationInput,
 } from '../../common/pagination/pagination';
 
+const PANEL_INCLUDE = {
+  lab: {
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      pincode: true,
+      serviceCities: true,
+    },
+  },
+  bundledTest: { select: { id: true, name: true, testsIncluded: true } },
+  panelTests: {
+    include: {
+      testMaster: { select: { id: true, name: true, status: true } },
+    },
+  },
+  clientPricing: {
+    where: { deletedAt: null },
+    include: {
+      client: { select: { id: true, name: true, email: true } },
+    },
+  },
+} as const;
+
 @Injectable()
 export class PanelService {
   constructor(private prisma: PrismaService) {}
@@ -23,27 +47,46 @@ export class PanelService {
     });
     if (!lab) throw new NotFoundException('Lab not found');
 
+    /* BUNDLED TEST — replaced by TestMaster
     const bundledTest = await this.prisma.labBundledTest.findFirst({
       where: { id: dto.bundledTestId, labId: dto.labId, deletedAt: null },
     });
     if (!bundledTest)
       throw new NotFoundException('Bundled test not found for this lab');
+    */
 
-    return this.prisma.panel.create({
-      data: {
-        labId: dto.labId,
-        bundledTestId: dto.bundledTestId,
-        name: dto.name,
-        timing: dto.timing,
-        mrp: dto.mrp,
-        costToVendor: dto.costToVendor,
-        labContact: dto.labContact,
-        createdBy: userId,
-      },
-      include: {
-        lab: { select: { id: true, name: true } },
-        bundledTest: { select: { id: true, name: true, testsIncluded: true } },
-      },
+    // Validate each testMasterId exists and is not deleted
+    for (const tmId of dto.testMasterIds) {
+      const test = await this.prisma.testMaster.findFirst({
+        where: { id: tmId, deletedAt: null },
+      });
+      if (!test) throw new NotFoundException(`Test not found: ${tmId}`);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const panel = await tx.panel.create({
+        data: {
+          labId: dto.labId,
+          name: dto.name,
+          timing: dto.timing,
+          mrp: dto.mrp,
+          costToVendor: dto.costToVendor,
+          labContact: dto.labContact,
+          createdBy: userId,
+        },
+      });
+
+      await tx.panelTest.createMany({
+        data: dto.testMasterIds.map((testMasterId) => ({
+          panelId: panel.id,
+          testMasterId,
+        })),
+      });
+
+      return tx.panel.findUnique({
+        where: { id: panel.id },
+        include: PANEL_INCLUDE,
+      });
     });
   }
 
@@ -56,24 +99,7 @@ export class PanelService {
 
     const query = {
       where,
-      include: {
-        lab: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            pincode: true,
-            serviceCities: true,
-          },
-        },
-        bundledTest: { select: { id: true, name: true, testsIncluded: true } },
-        clientPricing: {
-          where: { deletedAt: null },
-          include: {
-            client: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
+      include: PANEL_INCLUDE,
       orderBy: { createdAt: 'desc' as const },
     };
     const { wants, page, limit, skip, take } = resolvePagination(pagination);
@@ -88,31 +114,7 @@ export class PanelService {
   async findOne(id: string) {
     const panel = await this.prisma.panel.findFirst({
       where: { id, deletedAt: null },
-      include: {
-        lab: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            pincode: true,
-            serviceCities: true,
-          },
-        },
-        bundledTest: {
-          select: {
-            id: true,
-            name: true,
-            testsIncluded: true,
-            defaultTiming: true,
-          },
-        },
-        clientPricing: {
-          where: { deletedAt: null },
-          include: {
-            client: { select: { id: true, name: true, email: true } },
-          },
-        },
-      },
+      include: PANEL_INCLUDE,
     });
     if (!panel) throw new NotFoundException('Panel not found');
     return panel;
@@ -127,10 +129,7 @@ export class PanelService {
     return this.prisma.panel.update({
       where: { id },
       data: dto,
-      include: {
-        lab: { select: { id: true, name: true } },
-        bundledTest: { select: { id: true, name: true } },
-      },
+      include: PANEL_INCLUDE,
     });
   }
 
