@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -21,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { ReportService } from './report.service';
 import { CreateReportDto } from './dto/create-report.dto';
+import { UpdateReportDto } from './dto/update-report.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -61,6 +63,13 @@ export class ReportController {
   @ApiOperation({ summary: 'Upload a report for a booking' })
   create(@Body() dto: CreateReportDto, @CurrentUser() user: any) {
     return this.reportService.create(dto, user.id);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update fitness status / remarks on an existing report (ADMIN only)' })
+  update(@Param('id') id: string, @Body() dto: UpdateReportDto) {
+    return this.reportService.update(id, dto);
   }
 
   @Get()

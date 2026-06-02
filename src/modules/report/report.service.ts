@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReportDto } from './dto/create-report.dto';
+import { UpdateReportDto } from './dto/update-report.dto';
 import { S3Service } from '../../common/storage/s3.service';
 import {
   isS3Storage,
@@ -170,6 +171,19 @@ export class ReportService {
       this.prisma.report.count({ where: query.where }),
     ]);
     return buildPaginated(items, total, page, limit);
+  }
+
+  async update(id: string, dto: UpdateReportDto) {
+    const report = await this.prisma.report.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    return this.prisma.report.update({
+      where: { id },
+      data: dto,
+      include: REPORT_INCLUDE,
+    });
   }
 
   async findByBooking(bookingId: string) {
