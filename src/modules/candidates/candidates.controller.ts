@@ -59,18 +59,24 @@ export class CandidatesController {
     description:
       'When true, only "requested" candidates (active, with an appointment, not yet booked)',
   })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Free-text search across name / employee code / email / mobile',
+  })
   @ApiResponse({ status: 200, description: 'List of candidates' })
   findAll(
     @CurrentUser() user: any,
     @Query('clientId') clientId?: string,
     @Query('storeId') storeId?: string,
     @Query('available') available?: string,
+    @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.candidatesService.findAll(
       user,
-      { clientId, storeId, availableForBooking: available === 'true' },
+      { clientId, storeId, availableForBooking: available === 'true', search },
       { page, limit },
     );
   }

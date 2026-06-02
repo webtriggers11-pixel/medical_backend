@@ -58,6 +58,7 @@ export class CandidatesService {
       clientId?: string;
       storeId?: string;
       availableForBooking?: boolean;
+      search?: string;
     } = {},
     pagination?: PaginationInput,
   ) {
@@ -69,6 +70,16 @@ export class CandidatesService {
       where.clientId = filters.clientId;
     }
     if (filters.storeId) where.storeId = filters.storeId;
+    // Free-text search across name / employee code / email / mobile.
+    const search = filters.search?.trim();
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { employeeCode: { contains: search, mode: 'insensitive' as const } },
+        { email: { contains: search, mode: 'insensitive' as const } },
+        { mobile: { contains: search } },
+      ];
+    }
     // "Requested" candidates: active, have an appointment, and not yet booked
     // (no active/non-cancelled booking).
     if (filters.availableForBooking) {

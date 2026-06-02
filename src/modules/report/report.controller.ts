@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -67,9 +68,21 @@ export class ReportController {
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Update fitness status / remarks on an existing report (ADMIN only)' })
+  @ApiOperation({
+    summary:
+      'Update an existing report — metadata and/or files (add/remove/retag) (ADMIN only)',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateReportDto) {
     return this.reportService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({
+    summary: 'Delete a report (removes its files, reverts booking) (ADMIN only)',
+  })
+  remove(@Param('id') id: string) {
+    return this.reportService.remove(id);
   }
 
   @Get()
