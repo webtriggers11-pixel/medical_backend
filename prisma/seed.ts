@@ -99,7 +99,7 @@ async function main() {
   ];
 
   for (const { prefix, count } of sequenceModules) {
-    await prisma.id_sequence.upsert({
+    await prisma.idSequence.upsert({
       where: { prefix },
       create: { prefix, nextVal: count + 1 },
       update: {}, // never reset an existing counter
