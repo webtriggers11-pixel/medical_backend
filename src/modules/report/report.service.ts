@@ -93,7 +93,9 @@ export class ReportService {
   ): Promise<{ url: string }> {
     const file = await this.prisma.reportFile.findUnique({
       where: { id: fileId },
-      include: { report: { include: { candidate: { select: { clientId: true } } } } },
+      include: {
+        report: { include: { candidate: { select: { clientId: true } } } },
+      },
     });
     if (!file) throw new NotFoundException('File not found');
     // USER may only access files for their own candidates.
@@ -249,7 +251,8 @@ export class ReportService {
       });
 
       const data: Record<string, unknown> = {};
-      if (dto.fitnessStatus !== undefined) data.fitnessStatus = dto.fitnessStatus;
+      if (dto.fitnessStatus !== undefined)
+        data.fitnessStatus = dto.fitnessStatus;
       if (dto.remarks !== undefined) data.remarks = dto.remarks;
       if (dto.labInternalRef !== undefined)
         data.labInternalRef = dto.labInternalRef;

@@ -6,7 +6,6 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
-import { CandidateType } from '../../common/enums/candidate.enums';
 import {
   buildCandidateTemplate,
   parseCandidateCsv,
@@ -127,15 +126,15 @@ export class CandidatesService {
           storeId: store.id,
           clientId: store.clientId,
           name: dto.name,
-          employeeCode: dto.employeeCode,
+          employeeCode: dto.employeeCode ?? null,
           mobile: dto.mobile,
           gender: dto.gender,
           age: dto.age,
           doj: new Date(dto.doj),
-          candidateType: dto.candidateType ?? CandidateType.NEW_JOINER,
+          candidateType: dto.candidateType,
           appointmentDate,
           pincode: dto.pincode,
-          email: dto.email,
+          email: dto.email ?? null,
           panNumber: dto.panNumber ?? null,
           createdBy: userId,
         },

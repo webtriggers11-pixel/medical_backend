@@ -25,5 +25,7 @@ export const ALLOWED_REPORT_MIME = [
 ];
 
 /** Storage driver: 's3' (default) or 'disk' (local dev fallback). */
-export const STORAGE_DRIVER = (process.env.STORAGE_DRIVER ?? 's3').toLowerCase();
+export const STORAGE_DRIVER = (
+  process.env.STORAGE_DRIVER ?? 's3'
+).toLowerCase();
 export const isS3Storage = () => STORAGE_DRIVER !== 'disk';

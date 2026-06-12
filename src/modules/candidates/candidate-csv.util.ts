@@ -30,7 +30,7 @@ export type CandidateCsvRow = Record<Column, string>;
 export interface NormalizedCandidate {
   storeId: string;
   name: string;
-  employeeCode: string;
+  employeeCode: string | null;
   mobile: string;
   gender: Gender;
   age: number;
@@ -38,13 +38,19 @@ export interface NormalizedCandidate {
   doj: Date;
   appointmentDate: Date;
   pincode: string;
-  email: string;
+  email: string | null;
   panNumber: string | null;
 }
 
-// zone/city are reference-only columns and panNumber is optional; everything
-// else (including storeId) is required.
-const OPTIONAL_COLUMNS: Column[] = ['zone', 'city', 'panNumber'];
+// zone/city are reference-only columns; employeeCode, email and panNumber are
+// optional — everything else (including storeId) is required.
+const OPTIONAL_COLUMNS: Column[] = [
+  'zone',
+  'city',
+  'employeeCode',
+  'email',
+  'panNumber',
+];
 const REQUIRED: Column[] = CANDIDATE_CSV_COLUMNS.filter(
   (c) => !OPTIONAL_COLUMNS.includes(c),
 );
@@ -167,10 +173,9 @@ export function validateRow(
   if (!storeId) errors.push('storeId is required');
 
   const name = row.name?.trim();
-  const employeeCode = row.employeeCode?.trim();
+  const employeeCode = row.employeeCode?.trim() || null;
   const mobile = row.mobile?.trim();
   if (!name) errors.push('name is required');
-  if (!employeeCode) errors.push('employeeCode is required');
   if (!/^\d{10}$/.test(mobile || '')) errors.push('mobile must be 10 digits');
 
   const gender = (row.gender || '').trim().toUpperCase();
@@ -205,8 +210,8 @@ export function validateRow(
   const pincode = row.pincode?.trim() || '';
   if (!/^\d{6}$/.test(pincode)) errors.push('pincode must be 6 digits');
 
-  const email = row.email?.trim() || '';
-  if (!EMAIL_RE.test(email)) errors.push('email is required and must be valid');
+  const email = row.email?.trim() || null;
+  if (email && !EMAIL_RE.test(email)) errors.push('email must be valid');
 
   const panNumber = (row.panNumber?.trim() || '').toUpperCase();
   if (panNumber && !PAN_RE.test(panNumber)) errors.push('panNumber is invalid');
@@ -217,7 +222,7 @@ export function validateRow(
 
   return {
     data: {
-      storeId: storeId as string,
+      storeId: storeId,
       name: name,
       employeeCode: employeeCode,
       mobile: mobile,
@@ -254,8 +259,8 @@ export function buildCandidateTemplate(
 ): string {
   const header = CANDIDATE_CSV_COLUMNS.join(',');
 
-  // Dates use ISO YYYY-MM-DD. appointmentDate is required and must be a future
-  // date; panNumber is optional.
+  // Dates use ISO YYYY-MM-DD. appointmentDate is required and must be a
+  // future date; employeeCode, email and panNumber are optional.
   const now = new Date();
   const appointment = new Date(now);
   appointment.setUTCDate(appointment.getUTCDate() + 7);
@@ -274,7 +279,13 @@ export function buildCandidateTemplate(
 
   const sources = stores.length
     ? stores
-    : [{ zone: 'Zone name', city: 'City name', storeId: 'paste-store-id-here' }];
+    : [
+        {
+          zone: 'Zone name',
+          city: 'City name',
+          storeId: 'paste-store-id-here',
+        },
+      ];
 
   const lines = sources.map((s, i) => {
     const record: Record<string, string> = {

@@ -276,15 +276,15 @@ model Candidate {
   storeId       String
   clientId      String
   name          String
-  employeeCode  String
+  employeeCode  String?
   mobile        String
   gender        Gender
   age           Int
-  doj           DateTime
+  doj           DateTime?
   candidateType CandidateType @default(NEW_JOINER)
   appointmentDate DateTime?
-  pincode       String
-  email         String
+  pincode       String?
+  email         String?
   panNumber     String?
   isActive      Boolean       @default(true)
   isApproved    Boolean       @default(false)

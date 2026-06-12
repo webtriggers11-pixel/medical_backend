@@ -28,10 +28,11 @@ export class CreateCandidateDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'EMP1234' })
+  @ApiPropertyOptional({ example: 'EMP1234' })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  employeeCode: string;
+  employeeCode?: string;
 
   @ApiProperty({ example: '9999999999' })
   @Matches(/^\d{10}$/, { message: 'mobile must be exactly 10 digits' })
@@ -73,9 +74,10 @@ export class CreateCandidateDto {
   @Matches(/^\d{6}$/, { message: 'pincode must be exactly 6 digits' })
   pincode: string;
 
-  @ApiProperty({ example: 'john.doe@example.com' })
+  @ApiPropertyOptional({ example: 'john.doe@example.com' })
+  @IsOptional()
   @IsEmail({}, { message: 'email must be a valid email address' })
-  email: string;
+  email?: string;
 
   @ApiPropertyOptional({ example: 'ABCDE1234F' })
   @IsOptional()

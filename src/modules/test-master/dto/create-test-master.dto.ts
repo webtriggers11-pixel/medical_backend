@@ -14,13 +14,19 @@ export class CreateTestMasterDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ example: 'Measures red/white blood cells and platelets', maxLength: 255 })
+  @ApiPropertyOptional({
+    example: 'Measures red/white blood cells and platelets',
+    maxLength: 255,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(255)
   description?: string;
 
-  @ApiPropertyOptional({ enum: TestMasterStatus, default: TestMasterStatus.ACTIVE })
+  @ApiPropertyOptional({
+    enum: TestMasterStatus,
+    default: TestMasterStatus.ACTIVE,
+  })
   @IsEnum(TestMasterStatus)
   @IsOptional()
   status?: TestMasterStatus;

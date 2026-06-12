@@ -78,7 +78,10 @@ export class S3Service {
   }
 
   /** Pre-signed, time-limited GET URL for a private object. */
-  async getSignedDownloadUrl(key: string, ttlSeconds?: number): Promise<string> {
+  async getSignedDownloadUrl(
+    key: string,
+    ttlSeconds?: number,
+  ): Promise<string> {
     const client = this.ensure();
     return getSignedUrl(
       client,

@@ -30,7 +30,8 @@ export class TestMasterService {
     const existing = await this.prisma.testMaster.findFirst({
       where: { name: dto.name, deletedAt: null },
     });
-    if (existing) throw new ConflictException('A test with this name already exists');
+    if (existing)
+      throw new ConflictException('A test with this name already exists');
 
     return this.prisma.testMaster.create({
       data: {

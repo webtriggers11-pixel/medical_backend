@@ -14,7 +14,9 @@ import {
 import { FitnessStatus } from '@prisma/client';
 
 export class ReportFileDto {
-  @ApiProperty({ description: 'Relative/absolute URL (disk) or S3 key reference' })
+  @ApiProperty({
+    description: 'Relative/absolute URL (disk) or S3 key reference',
+  })
   @IsString()
   fileUrl: string;
 

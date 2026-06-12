@@ -62,7 +62,8 @@ export class CandidatesController {
   @ApiQuery({
     name: 'search',
     required: false,
-    description: 'Free-text search across name / employee code / email / mobile',
+    description:
+      'Free-text search across name / employee code / email / mobile',
   })
   @ApiResponse({ status: 200, description: 'List of candidates' })
   findAll(

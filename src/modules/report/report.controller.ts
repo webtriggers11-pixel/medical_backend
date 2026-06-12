@@ -79,7 +79,8 @@ export class ReportController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({
-    summary: 'Delete a report (removes its files, reverts booking) (ADMIN only)',
+    summary:
+      'Delete a report (removes its files, reverts booking) (ADMIN only)',
   })
   remove(@Param('id') id: string) {
     return this.reportService.remove(id);
