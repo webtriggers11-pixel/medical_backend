@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Role } from '../../common/enums/role.enum';
 import {
@@ -15,6 +16,7 @@ import {
 
 const USER_SELECT = {
   id: true,
+  clientId: true,
   email: true,
   name: true,
   mobile: true,
@@ -27,7 +29,10 @@ const USER_SELECT = {
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   // Clients are users with role USER. Soft-deleted clients are hidden.
   async findClients(pagination?: PaginationInput) {
@@ -110,17 +115,21 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    return this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        name: dto.name,
-        mobile: dto.mobile,
-        role: Role.USER,
-        isEmailVerified: true,
-        isActive: true,
-      },
-      select: USER_SELECT,
+    return this.prisma.$transaction(async (tx) => {
+      const clientId = await this.idSeq.generate('CL', tx);
+      return tx.user.create({
+        data: {
+          clientId,
+          email: dto.email,
+          password: hashedPassword,
+          name: dto.name,
+          mobile: dto.mobile,
+          role: Role.USER,
+          isEmailVerified: true,
+          isActive: true,
+        },
+        select: USER_SELECT,
+      });
     });
   }
 }

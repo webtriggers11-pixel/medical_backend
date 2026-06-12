@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEmail, IsOptional, IsArray } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 
 export class CreateLabDto {
   @ApiProperty()
@@ -11,22 +18,21 @@ export class CreateLabDto {
   contactName: string;
 
   @ApiProperty()
-  @IsString()
+  @Matches(/^\d{10}$/, { message: 'contactMobile must be exactly 10 digits' })
   contactMobile: string;
 
   @ApiProperty()
   @IsEmail()
   email: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @IsString()
-  @IsOptional()
-  address?: string;
+  @IsNotEmpty()
+  address: string;
 
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  pincode?: string;
+  @ApiProperty()
+  @Matches(/^\d{6}$/, { message: 'pincode must be exactly 6 digits' })
+  pincode: string;
 
   @ApiPropertyOptional({
     type: [String],

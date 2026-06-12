@@ -4,6 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreatePanelDto } from './dto/create-panel.dto';
 import { UpdatePanelDto } from './dto/update-panel.dto';
 import { SetClientPricingDto } from './dto/set-client-pricing.dto';
@@ -39,7 +40,10 @@ const PANEL_INCLUDE = {
 
 @Injectable()
 export class PanelService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   async create(dto: CreatePanelDto, userId: string) {
     const lab = await this.prisma.lab.findFirst({
@@ -64,8 +68,10 @@ export class PanelService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const displayId = await this.idSeq.generate('P', tx);
       const panel = await tx.panel.create({
         data: {
+          panelId: displayId,
           labId: dto.labId,
           name: dto.name,
           timing: dto.timing,

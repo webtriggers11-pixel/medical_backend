@@ -99,6 +99,7 @@ enum NotificationStatus {
 // bookings and panel pricing. There is no separate Company entity.
 model User {
   id                 String    @id @default(cuid())
+  clientId           String?   @unique
   email              String    @unique
   name               String?
   mobile             String?
@@ -227,6 +228,7 @@ model LabBundledTest {
 
 model Panel {
   id             String      @id @default(cuid())
+  panelId        String?     @unique
   labId          String
   bundledTestId  String?
   name           String
@@ -280,10 +282,10 @@ model Candidate {
   mobile        String
   gender        Gender
   age           Int
-  doj           DateTime?
+  doj           DateTime
   candidateType CandidateType @default(NEW_JOINER)
   appointmentDate DateTime?
-  pincode       String?
+  pincode       String
   email         String?
   panNumber     String?
   isActive      Boolean       @default(true)
@@ -409,7 +411,7 @@ model Notification {
 // $transaction whenever a new record is created.
 model IdSequence {
   prefix  String @id   // e.g. "B", "S", "L", "C"
-  nextVal Int    @default(1)
+  nextVal BigInt @default(1)
 
   @@map("id_sequences")
 }
@@ -419,6 +421,7 @@ model IdSequence {
 // id is @id (PRIMARY KEY) which is implicitly unique; no separate @unique needed.
 model TestMaster {
   id          String           @id @default(cuid())
+  testId      String?          @unique
   name        String           @unique
   description String?          @db.VarChar(255)
   status      TestMasterStatus @default(ACTIVE)

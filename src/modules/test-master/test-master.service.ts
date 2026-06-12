@@ -4,12 +4,16 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateTestMasterDto } from './dto/create-test-master.dto';
 import { UpdateTestMasterDto } from './dto/update-test-master.dto';
 
 @Injectable()
 export class TestMasterService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private idSeq: IdSequenceService,
+  ) {}
 
   async findAll() {
     return this.prisma.testMaster.findMany({
@@ -33,13 +37,17 @@ export class TestMasterService {
     if (existing)
       throw new ConflictException('A test with this name already exists');
 
-    return this.prisma.testMaster.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        status: dto.status ?? 'ACTIVE',
-        createdBy: userId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const testId = await this.idSeq.generate('T', tx);
+      return tx.testMaster.create({
+        data: {
+          testId,
+          name: dto.name,
+          description: dto.description,
+          status: dto.status ?? 'ACTIVE',
+          createdBy: userId,
+        },
+      });
     });
   }
 

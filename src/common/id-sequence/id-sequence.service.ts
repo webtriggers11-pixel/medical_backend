@@ -6,7 +6,7 @@ type TxClient = Omit<
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
 
-// Generates prefix-sequential IDs (e.g. B001, L012, C1000).
+// Generates prefix-sequential IDs (e.g. B-0000001, CL-0000042).
 // Must be called inside a prisma.$transaction so the counter
 // increment and the record insert are atomic — if the insert
 // rolls back, the counter rolls back too.
@@ -25,7 +25,7 @@ export class IdSequenceService {
         );
       });
 
-    // padStart(3,'0') pads to minimum 3 digits — grows naturally beyond 999.
-    return `${prefix}${String(seq.nextVal).padStart(3, '0')}`;
+    // padStart(7,'0') pads to 7 digits — grows naturally beyond 9999999.
+    return `${prefix}-${String(seq.nextVal).padStart(7, '0')}`;
   }
 }

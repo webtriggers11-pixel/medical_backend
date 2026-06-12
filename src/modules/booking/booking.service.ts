@@ -19,6 +19,7 @@ const BOOKING_INCLUDE = {
   candidate: {
     select: {
       id: true,
+      candidateId: true,
       name: true,
       employeeCode: true,
       mobile: true,
@@ -32,6 +33,7 @@ const BOOKING_INCLUDE = {
   panel: {
     select: {
       id: true,
+      panelId: true,
       name: true,
       mrp: true,
       costToVendor: true,
@@ -41,6 +43,7 @@ const BOOKING_INCLUDE = {
   lab: {
     select: {
       id: true,
+      labId: true,
       name: true,
       contactName: true,
       contactMobile: true,
