@@ -17,6 +17,7 @@ import { ReportModule } from './modules/report/report.module';
 import { TestMasterModule } from './modules/test-master/test-master.module';
 import { IdSequenceModule } from './common/id-sequence/id-sequence.module';
 import { StatsModule } from './modules/stats/stats.module';
+import { ExportModule } from './modules/export/export.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { StatsModule } from './modules/stats/stats.module';
     TestMasterModule,
     IdSequenceModule,
     StatsModule,
+    ExportModule,
   ],
 })
 export class AppModule {}
