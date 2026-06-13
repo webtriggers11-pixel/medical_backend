@@ -197,7 +197,10 @@ export class AuthService {
       where: { id: userId },
       select: {
         id: true,
+        clientId: true,
         email: true,
+        name: true,
+        mobile: true,
         role: true,
         isActive: true,
         isEmailVerified: true,
