@@ -16,6 +16,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { ReportModule } from './modules/report/report.module';
 import { TestMasterModule } from './modules/test-master/test-master.module';
 import { IdSequenceModule } from './common/id-sequence/id-sequence.module';
+import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { IdSequenceModule } from './common/id-sequence/id-sequence.module';
     ReportModule,
     TestMasterModule,
     IdSequenceModule,
+    StatsModule,
   ],
 })
 export class AppModule {}
