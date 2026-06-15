@@ -11,6 +11,17 @@ import { UPLOAD_ROOT } from './common/storage/storage.constants';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Railway sits behind a proxy — needed so req.hostname reflects the real domain.
+  app.set('trust proxy', 1);
+
+  // Redirect naked domain → www (301 permanent, preserves path).
+  app.use((req: any, res: any, next: any) => {
+    if (req.hostname === 'lifecarecorp.in') {
+      return res.redirect(301, `https://www.lifecarecorp.in${req.originalUrl}`);
+    }
+    next();
+  });
+
   // Serve uploaded report files from /uploads (outside the /api/v1 prefix).
   app.useStaticAssets(UPLOAD_ROOT, { prefix: '/uploads/' });
 
