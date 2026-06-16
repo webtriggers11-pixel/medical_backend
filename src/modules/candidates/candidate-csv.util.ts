@@ -35,19 +35,21 @@ export interface NormalizedCandidate {
   gender: Gender;
   age: number;
   candidateType: CandidateType;
-  doj: Date;
+  doj: Date | null;
   appointmentDate: Date;
-  pincode: string;
+  pincode: string | null;
   email: string | null;
   panNumber: string | null;
 }
 
-// zone/city are reference-only columns; employeeCode, email and panNumber are
-// optional — everything else (including storeId) is required.
+// zone/city are reference-only columns; employeeCode, doj, pincode, email and
+// panNumber are optional — everything else (including storeId) is required.
 const OPTIONAL_COLUMNS: Column[] = [
   'zone',
   'city',
   'employeeCode',
+  'doj',
+  'pincode',
   'email',
   'panNumber',
 ];
@@ -193,8 +195,9 @@ export function validateRow(
     errors.push('candidateType must be NEW_JOINER, EXISTING or ANNUAL');
   }
 
+  // Optional: blank → null. Only reject a value that is present but unparseable.
   const doj = parseDate(row.doj || '');
-  if (!doj) errors.push('doj is required and must be a valid date');
+  if (doj === undefined) errors.push('doj must be a valid date (YYYY-MM-DD)');
 
   // Required, must be a valid future date (tomorrow or later).
   const appointmentRaw = (row.appointmentDate || '').trim();
@@ -207,8 +210,11 @@ export function validateRow(
     errors.push('appointmentDate must be a future date');
   }
 
+  // Optional: blank → null. Only validate the format when a value is present.
   const pincode = row.pincode?.trim() || '';
-  if (!/^\d{6}$/.test(pincode)) errors.push('pincode must be 6 digits');
+  if (pincode && !/^\d{6}$/.test(pincode)) {
+    errors.push('pincode must be 6 digits');
+  }
 
   const email = row.email?.trim() || null;
   if (email && !EMAIL_RE.test(email)) errors.push('email must be valid');
@@ -229,9 +235,9 @@ export function validateRow(
       gender: gender as Gender,
       age: ageNum,
       candidateType: candidateType as CandidateType,
-      doj: doj as Date,
+      doj: doj ?? null,
       appointmentDate: appointmentDate as Date,
-      pincode,
+      pincode: pincode || null,
       email,
       panNumber: panNumber || null,
     },
