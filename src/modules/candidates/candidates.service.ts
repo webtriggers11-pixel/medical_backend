@@ -106,18 +106,7 @@ export class CandidatesService {
     const store = await this.resolveStore(dto.storeId);
     const appointmentDate = this.parseFutureAppointment(dto.appointmentDate);
 
-    // Mobile is treated as a unique key — reject duplicates of any existing
-    // (non-deleted) candidate.
-    const existing = await this.prisma.candidate.findFirst({
-      where: { mobile: dto.mobile, deletedAt: null },
-      select: { id: true },
-    });
-    if (existing) {
-      throw new BadRequestException(
-        `A candidate with mobile ${dto.mobile} already exists.`,
-      );
-    }
-
+    // mobile, employeeCode and pincode are not unique — duplicates are allowed.
     return this.prisma.$transaction(async (tx) => {
       const candidateId = await this.idSeq.generate('C', tx);
       return tx.candidate.create({
@@ -203,21 +192,9 @@ export class CandidatesService {
       throw new BadRequestException('No candidate rows found in the file.');
     }
 
-    // Mobile is a unique key — pre-load mobiles that already exist in the DB so
-    // duplicates in the file are skipped (alongside in-file de-duplication).
-    const fileMobiles = rows
-      .map((r) => r.mobile?.trim())
-      .filter((m): m is string => !!m);
-    const existingCandidates = fileMobiles.length
-      ? await this.prisma.candidate.findMany({
-          where: { deletedAt: null, mobile: { in: fileMobiles } },
-          select: { mobile: true },
-        })
-      : [];
-    const existingMobiles = new Set(existingCandidates.map((c) => c.mobile));
-
+    // Mobile, employeeCode and pincode are not unique — duplicates are allowed,
+    // both within the file and against existing candidates.
     const result: BulkUploadResult = { created: 0, skipped: 0, errors: [] };
-    const seenMobiles = new Set<string>();
 
     for (let i = 0; i < rows.length; i++) {
       const rowNumber = i + 2; // +1 header, +1 for 1-based
@@ -245,26 +222,6 @@ export class CandidatesService {
         });
         continue;
       }
-
-      if (seenMobiles.has(c.mobile)) {
-        result.skipped++;
-        result.errors.push({
-          row: rowNumber,
-          mobile: c.mobile,
-          reason: 'Duplicate mobile within file',
-        });
-        continue;
-      }
-      if (existingMobiles.has(c.mobile)) {
-        result.skipped++;
-        result.errors.push({
-          row: rowNumber,
-          mobile: c.mobile,
-          reason: 'A candidate with this mobile already exists',
-        });
-        continue;
-      }
-      seenMobiles.add(c.mobile);
 
       await this.prisma.$transaction(async (tx) => {
         const candidateId = await this.idSeq.generate('C', tx);
