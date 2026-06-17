@@ -6,10 +6,6 @@ type TxClient = Omit<
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
 
-// Generates prefix-sequential IDs (e.g. B-0000001, CL-0000042).
-// Must be called inside a prisma.$transaction so the counter
-// increment and the record insert are atomic — if the insert
-// rolls back, the counter rolls back too.
 @Injectable()
 export class IdSequenceService {
   async generate(prefix: string, tx: TxClient): Promise<string> {
@@ -25,7 +21,6 @@ export class IdSequenceService {
         );
       });
 
-    // padStart(7,'0') pads to 7 digits — grows naturally beyond 9999999.
-    return `${prefix}-${String(seq.nextVal).padStart(7, '0')}`;
+    return String(seq.nextVal);
   }
 }
