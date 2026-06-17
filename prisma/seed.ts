@@ -89,22 +89,16 @@ async function main() {
   }
 
   // ID sequence counters — one row per module prefix.
-  // nextVal starts after the current record count so new creates
-  // never clash with a future backfill of existing rows.
-  const sequenceModules = [
-    { prefix: 'B', count: await prisma.booking.count() },
-    { prefix: 'S', count: await prisma.store.count() },
-    { prefix: 'L', count: await prisma.lab.count() },
-    { prefix: 'C', count: await prisma.candidate.count() },
-  ];
+  // Each prefix starts at 1000000 so first generate() returns 1000001.
+  const sequencePrefixes = ['B', 'S', 'L', 'C', 'CL', 'P', 'T'];
 
-  for (const { prefix, count } of sequenceModules) {
+  for (const prefix of sequencePrefixes) {
     await prisma.idSequence.upsert({
       where: { prefix },
-      create: { prefix, nextVal: count + 1 },
+      create: { prefix, nextVal: 1000000 },
       update: {}, // never reset an existing counter
     });
-    console.log(`✓ IdSequence: ${prefix} → starts at ${count + 1}`);
+    console.log(`✓ IdSequence: ${prefix} → starts at 1000000`);
   }
 
   // Test Master seed — global diagnostic test catalog.
@@ -187,9 +181,8 @@ async function main() {
   // Idempotent: reformats legacy ids (C001 → C-0000001) preserving their
   // numbers, assigns ids to rows that have none (oldest first), and bumps
   // each counter to the highest number in use (never decreases it).
-  const fmtId = (prefix: string, n: number) =>
-    `${prefix}-${String(n).padStart(7, '0')}`;
-  const NEW_FORMAT = /^[A-Z]+-\d{7,}$/;
+  const fmtId = (_prefix: string, n: number) => String(n);
+  const NEW_FORMAT = /^\d{7,}$/;
 
   const displayIdTargets: {
     prefix: string;
