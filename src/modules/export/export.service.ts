@@ -5,11 +5,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 // Column order matches the "Billing data for LR" export format exactly.
 const COLUMNS = [
   'orders',
-  'net',
-  'gmv',
+  'ctv',
+  'ctc',
   'company_id',
   'company_name',
-  'business_stream',
   'approval_date',
   'requested_date',
   'checkup_date',
@@ -127,11 +126,10 @@ function toRow(b: BookingRow): (string | number)[] {
 
   return [
     b.bookingId ?? '', // orders
-    vendor ?? '', // net (cost to vendor)
-    charged ?? '', // gmv (billed to client)
+    vendor ?? '', // ctv (cost to vendor)
+    charged ?? '', // ctc (billed to client)
     b.client.clientId ?? '', // company_id
     b.client.name ?? '', // company_name
-    '', // business_stream — n/a
     '', // approval_date — n/a (only a boolean stored)
     fmtDate(b.reqDate), // requested_date
     fmtDate(b.scheduledDate ?? c.appointmentDate), // checkup_date
