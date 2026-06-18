@@ -44,7 +44,7 @@ export class ExportController {
   @Get('bookings')
   @ApiOperation({
     summary:
-      'Export bookings (billing format) as CSV, filtered by requested date',
+      'Export bookings (billing format) as CSV, filtered by checkup date',
   })
   @ApiQuery({
     name: 'from',

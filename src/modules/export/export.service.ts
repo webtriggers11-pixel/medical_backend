@@ -78,16 +78,23 @@ export class ExportService {
     to?: string;
   }): Promise<{ columns: string[]; rows: (string | number)[][] }> {
     const where: Prisma.BookingWhereInput = { deletedAt: null };
-    const reqDate: Prisma.DateTimeFilter = {};
+    // Filter by checkup_date, which is the scheduled date when present and
+    // otherwise the candidate's appointment date (mirrors `toRow`'s mapping).
+    const checkupDate: Prisma.DateTimeFilter = {};
     if (range.from) {
       const d = new Date(range.from);
-      if (!isNaN(d.getTime())) reqDate.gte = startOfDay(d);
+      if (!isNaN(d.getTime())) checkupDate.gte = startOfDay(d);
     }
     if (range.to) {
       const d = new Date(range.to);
-      if (!isNaN(d.getTime())) reqDate.lte = endOfDay(d);
+      if (!isNaN(d.getTime())) checkupDate.lte = endOfDay(d);
     }
-    if (reqDate.gte || reqDate.lte) where.reqDate = reqDate;
+    if (checkupDate.gte || checkupDate.lte) {
+      where.OR = [
+        { scheduledDate: checkupDate },
+        { scheduledDate: null, candidate: { appointmentDate: checkupDate } },
+      ];
+    }
 
     const bookings = await this.prisma.booking.findMany({
       where,
