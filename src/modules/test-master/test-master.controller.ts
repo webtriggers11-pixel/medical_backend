@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -36,8 +37,12 @@ export class TestMasterController {
   @Get()
   @ApiOperation({ summary: 'List all test master records (ADMIN only)' })
   @ApiResponse({ status: 200, description: 'List of tests' })
-  findAll() {
-    return this.testMasterService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.testMasterService.findAll({ page, limit }, search);
   }
 
   @Post()

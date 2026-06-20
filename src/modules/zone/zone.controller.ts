@@ -39,8 +39,12 @@ export class ZoneController {
   @Get()
   @Roles(Role.ADMIN, Role.USER)
   @ApiOperation({ summary: 'List all zones' })
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.zoneService.findAll({ page, limit });
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.zoneService.findAll({ page, limit }, search);
   }
 
   @Patch(':id')

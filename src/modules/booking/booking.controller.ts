@@ -39,8 +39,12 @@ export class BookingController {
     summary:
       'Candidates awaiting booking (have appointment date, not yet booked)',
   })
-  findRequests(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.bookingService.findRequests({ page, limit });
+  findRequests(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.bookingService.findRequests({ page, limit }, search);
   }
 
   @Post()

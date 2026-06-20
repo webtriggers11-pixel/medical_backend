@@ -153,6 +153,7 @@ model City {
   zone      Zone       @relation(fields: [zoneId], references: [id])
   stores    Store[]
 
+  @@index([zoneId])
   @@map("cities")
 }
 
@@ -181,6 +182,7 @@ model Store {
   candidates      Candidate[]
 
   @@unique([clientId, storeCode])
+  @@index([cityId])
   @@map("stores")
 }
 
@@ -268,6 +270,7 @@ model ClientPanelPricing {
   panel            Panel    @relation(fields: [panelId], references: [id])
 
   @@unique([clientId, panelId])
+  @@index([panelId])
   @@map("client_panel_pricing")
 }
 
@@ -300,6 +303,9 @@ model Candidate {
   bookings      Booking[]
   reports       Report[]
 
+  @@index([clientId])
+  @@index([storeId])
+  @@index([appointmentDate])
   @@map("candidates")
 }
 
@@ -329,6 +335,10 @@ model Booking {
   report          Report?
   scheduleHistory BookingScheduleChange[]
 
+  @@index([candidateId])
+  @@index([clientId])
+  @@index([labId])
+  @@index([status])
   @@map("bookings")
 }
 
@@ -372,6 +382,7 @@ model Report {
   candidate      Candidate     @relation(fields: [candidateId], references: [id])
   files          ReportFile[]
 
+  @@index([candidateId])
   @@map("reports")
 }
 

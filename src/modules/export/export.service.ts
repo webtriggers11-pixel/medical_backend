@@ -96,13 +96,29 @@ export class ExportService {
       ];
     }
 
-    const bookings = await this.prisma.booking.findMany({
-      where,
-      include: BOOKING_INCLUDE,
-      orderBy: { reqDate: 'desc' },
-    });
+    // Stream through bookings in batches via a stable cursor instead of
+    // loading every booking + its deep relation tree into memory at once
+    // (OOM risk on large exports). Each batch is mapped to flat rows and then
+    // discarded, so peak memory holds at most BATCH heavy objects. Output
+    // order (reqDate desc, id tiebreak) and contents are unchanged.
+    const BATCH = 500;
+    const rows: (string | number)[][] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const batch = await this.prisma.booking.findMany({
+        where,
+        include: BOOKING_INCLUDE,
+        orderBy: [{ reqDate: 'desc' }, { id: 'asc' }],
+        take: BATCH,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      });
+      if (batch.length === 0) break;
+      for (const b of batch) rows.push(toRow(b));
+      if (batch.length < BATCH) break;
+      cursor = batch[batch.length - 1].id;
+    }
 
-    return { columns: [...COLUMNS], rows: bookings.map(toRow) };
+    return { columns: [...COLUMNS], rows };
   }
 
   // Booking-centric billing export. One row per booking, filtered by reqDate.

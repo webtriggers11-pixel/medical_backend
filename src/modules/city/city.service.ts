@@ -32,9 +32,12 @@ export class CityService {
     });
   }
 
-  async findAll(zoneId: string, pagination?: PaginationInput) {
+  async findAll(zoneId: string, pagination?: PaginationInput, search?: string) {
+    const q = search?.trim();
+    const where: any = { zoneId, deletedAt: null };
+    if (q) where.name = { contains: q, mode: 'insensitive' as const };
     const query = {
-      where: { zoneId, deletedAt: null },
+      where,
       orderBy: { createdAt: 'asc' as const },
       include: { _count: { select: { stores: true } } },
     };
@@ -42,7 +45,7 @@ export class CityService {
     if (!wants) return this.prisma.city.findMany(query);
     const [items, total] = await Promise.all([
       this.prisma.city.findMany({ ...query, skip, take }),
-      this.prisma.city.count({ where: query.where }),
+      this.prisma.city.count({ where }),
     ]);
     return buildPaginated(items, total, page, limit);
   }

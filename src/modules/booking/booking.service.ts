@@ -66,15 +66,34 @@ export class BookingService {
   // ── Admin: candidates awaiting booking ─────────────────────────
   // A "booking request" = candidate with an appointmentDate but no active
   // booking yet. HR sets appointmentDate when creating the candidate.
-  async findRequests(pagination?: PaginationInput) {
-    const query = {
-      where: {
-        deletedAt: null,
-        appointmentDate: { not: null },
-        bookings: {
-          none: { status: { notIn: ['CANCELLED' as const] }, deletedAt: null },
-        },
+  async findRequests(pagination?: PaginationInput, search?: string) {
+    const q = search?.trim();
+    const where: any = {
+      deletedAt: null,
+      appointmentDate: { not: null },
+      bookings: {
+        none: { status: { notIn: ['CANCELLED' as const] }, deletedAt: null },
       },
+    };
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { employeeCode: { contains: q, mode: 'insensitive' as const } },
+        { mobile: { contains: q } },
+        {
+          client: {
+            is: {
+              OR: [
+                { name: { contains: q, mode: 'insensitive' as const } },
+                { email: { contains: q, mode: 'insensitive' as const } },
+              ],
+            },
+          },
+        },
+      ];
+    }
+    const query = {
+      where,
       include: {
         store: { select: { id: true, name: true, storeCode: true } },
         client: { select: { id: true, name: true, email: true } },
@@ -85,7 +104,7 @@ export class BookingService {
     if (!wants) return this.prisma.candidate.findMany(query);
     const [items, total] = await Promise.all([
       this.prisma.candidate.findMany({ ...query, skip, take }),
-      this.prisma.candidate.count({ where: query.where }),
+      this.prisma.candidate.count({ where }),
     ]);
     return buildPaginated(items, total, page, limit);
   }

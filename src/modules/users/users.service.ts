@@ -35,9 +35,19 @@ export class UsersService {
   ) {}
 
   // Clients are users with role USER. Soft-deleted clients are hidden.
-  async findClients(pagination?: PaginationInput) {
+  async findClients(pagination?: PaginationInput, search?: string) {
+    const q = search?.trim();
+    const where: any = { role: Role.USER, deletedAt: null };
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { email: { contains: q, mode: 'insensitive' as const } },
+        { mobile: { contains: q } },
+        { clientId: { contains: q } },
+      ];
+    }
     const query = {
-      where: { role: Role.USER, deletedAt: null },
+      where,
       select: USER_SELECT,
       orderBy: { createdAt: 'desc' as const },
     };
@@ -45,7 +55,7 @@ export class UsersService {
     if (!wants) return this.prisma.user.findMany(query);
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({ ...query, skip, take }),
-      this.prisma.user.count({ where: query.where }),
+      this.prisma.user.count({ where }),
     ]);
     return buildPaginated(items, total, page, limit);
   }

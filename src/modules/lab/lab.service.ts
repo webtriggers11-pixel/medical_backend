@@ -35,11 +35,24 @@ export class LabService {
     });
   }
 
-  async findAll(cityId?: string, pagination?: PaginationInput) {
+  async findAll(
+    cityId?: string,
+    pagination?: PaginationInput,
+    search?: string,
+  ) {
     const where: any = { deletedAt: null };
 
     if (cityId) {
       where.serviceCities = { path: '$', array_contains: cityId };
+    }
+    const q = search?.trim();
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { email: { contains: q, mode: 'insensitive' as const } },
+        { contactName: { contains: q, mode: 'insensitive' as const } },
+        { labId: { contains: q } },
+      ];
     }
 
     const query = {
