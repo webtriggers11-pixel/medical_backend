@@ -36,8 +36,12 @@ export class UsersController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List clients (users with role USER) — ADMIN only' })
   @ApiResponse({ status: 200, description: 'List of clients' })
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.usersService.findClients({ page, limit });
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.findClients({ page, limit }, search);
   }
 
   @Get('me')

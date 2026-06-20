@@ -49,8 +49,9 @@ export class CityController {
     @Query('zoneId') zoneId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.cityService.findAll(zoneId, { page, limit });
+    return this.cityService.findAll(zoneId, { page, limit }, search);
   }
 
   @Patch(':id')

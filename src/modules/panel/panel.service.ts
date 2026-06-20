@@ -59,12 +59,17 @@ export class PanelService {
       throw new NotFoundException('Bundled test not found for this lab');
     */
 
-    // Validate each testMasterId exists and is not deleted
-    for (const tmId of dto.testMasterIds) {
-      const test = await this.prisma.testMaster.findFirst({
-        where: { id: tmId, deletedAt: null },
-      });
-      if (!test) throw new NotFoundException(`Test not found: ${tmId}`);
+    // Validate every testMasterId exists and is not deleted — single query
+    // instead of one findFirst per id (avoids N+1 on large panels).
+    const uniqueTestIds = [...new Set(dto.testMasterIds)];
+    const foundTests = await this.prisma.testMaster.findMany({
+      where: { id: { in: uniqueTestIds }, deletedAt: null },
+      select: { id: true },
+    });
+    if (foundTests.length !== uniqueTestIds.length) {
+      const foundSet = new Set(foundTests.map((t) => t.id));
+      const missing = uniqueTestIds.filter((id) => !foundSet.has(id));
+      throw new NotFoundException(`Test not found: ${missing.join(', ')}`);
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -96,11 +101,37 @@ export class PanelService {
     });
   }
 
-  async findAll(filters: { labId?: string }, pagination?: PaginationInput) {
+  async findAll(
+    filters: { labId?: string; clientId?: string; search?: string },
+    pagination?: PaginationInput,
+  ) {
     const where: any = { deletedAt: null };
 
     if (filters.labId) {
       where.labId = filters.labId;
+    }
+    // Panels priced for a specific client (drives the booking panel picker).
+    if (filters.clientId) {
+      where.clientPricing = {
+        some: { clientId: filters.clientId, deletedAt: null },
+      };
+    }
+    const q = filters.search?.trim();
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { panelId: { contains: q } },
+        { lab: { is: { name: { contains: q, mode: 'insensitive' as const } } } },
+        {
+          panelTests: {
+            some: {
+              testMaster: {
+                is: { name: { contains: q, mode: 'insensitive' as const } },
+              },
+            },
+          },
+        },
+      ];
     }
 
     const query = {

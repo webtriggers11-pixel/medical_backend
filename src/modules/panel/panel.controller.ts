@@ -52,8 +52,13 @@ export class PanelController {
     @Query('labId') labId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('clientId') clientId?: string,
+    @Query('search') search?: string,
   ) {
-    return this.panelService.findAll({ labId }, { page, limit });
+    return this.panelService.findAll(
+      { labId, clientId, search },
+      { page, limit },
+    );
   }
 
   @Get(':id')

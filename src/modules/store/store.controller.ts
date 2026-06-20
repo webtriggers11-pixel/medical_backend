@@ -56,8 +56,13 @@ export class StoreController {
     @Query('zoneId') zoneId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.storeService.findAll(user, { cityId, zoneId }, { page, limit });
+    return this.storeService.findAll(
+      user,
+      { cityId, zoneId, search },
+      { page, limit },
+    );
   }
 
   @Get(':id')

@@ -74,12 +74,43 @@ export class CandidatesController {
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('type') type?: string,
+    @Query('with') withParam?: string,
+    @Query('zoneId') zoneId?: string,
+    @Query('cityId') cityId?: string,
+    @Query('labId') labId?: string,
+    @Query('approve') approve?: string,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
+    const rel = (withParam ?? '').split(',').map((s) => s.trim());
     return this.candidatesService.findAll(
       user,
-      { clientId, storeId, availableForBooking: available === 'true', search },
+      {
+        clientId,
+        storeId,
+        zoneId,
+        cityId,
+        labId,
+        isApproved:
+          approve === 'true' ? true : approve === 'false' ? false : undefined,
+        statusBucket: status,
+        appointmentFrom: from,
+        appointmentTo: to,
+        availableForBooking: available === 'true',
+        search,
+        candidateType: type,
+      },
       { page, limit },
+      { booking: rel.includes('booking'), reports: rel.includes('reports') },
     );
+  }
+
+  @Get('type-counts')
+  @ApiOperation({ summary: 'Candidate counts by type (scoped to caller)' })
+  typeCounts(@CurrentUser() user: any) {
+    return this.candidatesService.typeCounts(user);
   }
 
   @Post()

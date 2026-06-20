@@ -82,7 +82,7 @@ export class StoreService {
   // Optional zone/city filters narrow the result; cities live under zones.
   async findAll(
     user: { id: string; role: string },
-    filters: { cityId?: string; zoneId?: string } = {},
+    filters: { cityId?: string; zoneId?: string; search?: string } = {},
     pagination?: PaginationInput,
   ) {
     const where: Prisma.StoreWhereInput = { deletedAt: null };
@@ -92,6 +92,14 @@ export class StoreService {
     }
     if (filters.cityId) where.cityId = filters.cityId;
     if (filters.zoneId) where.city = { zoneId: filters.zoneId };
+    const q = filters.search?.trim();
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { storeCode: { contains: q, mode: 'insensitive' } },
+        { storeId: { contains: q } },
+      ];
+    }
 
     const query = {
       where,

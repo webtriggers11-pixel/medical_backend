@@ -49,8 +49,9 @@ export class LabController {
     @Query('cityId') cityId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.labService.findAll(cityId, { page, limit });
+    return this.labService.findAll(cityId, { page, limit }, search);
   }
 
   @Get(':id')

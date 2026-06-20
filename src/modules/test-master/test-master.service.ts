@@ -7,6 +7,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateTestMasterDto } from './dto/create-test-master.dto';
 import { UpdateTestMasterDto } from './dto/update-test-master.dto';
+import {
+  buildPaginated,
+  resolvePagination,
+  type PaginationInput,
+} from '../../common/pagination/pagination';
 
 @Injectable()
 export class TestMasterService {
@@ -15,11 +20,24 @@ export class TestMasterService {
     private idSeq: IdSequenceService,
   ) {}
 
-  async findAll() {
-    return this.prisma.testMaster.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(pagination?: PaginationInput, search?: string) {
+    const q = search?.trim();
+    const where: any = { deletedAt: null };
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' as const } },
+        { description: { contains: q, mode: 'insensitive' as const } },
+        { testId: { contains: q } },
+      ];
+    }
+    const query = { where, orderBy: { createdAt: 'desc' as const } };
+    const { wants, page, limit, skip, take } = resolvePagination(pagination);
+    if (!wants) return this.prisma.testMaster.findMany(query);
+    const [items, total] = await Promise.all([
+      this.prisma.testMaster.findMany({ ...query, skip, take }),
+      this.prisma.testMaster.count({ where }),
+    ]);
+    return buildPaginated(items, total, page, limit);
   }
 
   async findOne(id: string) {
