@@ -1,11 +1,13 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IdSequenceService } from '../../common/id-sequence/id-sequence.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import {
   buildCandidateTemplate,
   parseCandidateCsv,
@@ -344,6 +346,136 @@ export class CandidatesService {
         client: { select: { id: true, name: true, email: true } },
       },
     });
+  }
+
+  /**
+   * Load a single non-deleted candidate, enforcing access scope: a USER may
+   * only touch candidates belonging to their own client account; an ADMIN may
+   * touch any. Throws 404 when missing, 403 when out of scope.
+   */
+  private async findScoped(user: { id: string; role: string }, id: string) {
+    const candidate = await this.prisma.candidate.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!candidate) throw new NotFoundException('Candidate not found');
+    if (user.role !== 'ADMIN' && candidate.clientId !== user.id) {
+      throw new ForbiddenException('You cannot access this candidate');
+    }
+    return candidate;
+  }
+
+  /**
+   * Edit a candidate's details (admin). Store/client are immutable (see
+   * UpdateCandidateDto). The future-appointment rule is only enforced when the
+   * appointment date is actually being changed — otherwise an admin could not
+   * edit any other field on a candidate whose appointment is already in the
+   * past.
+   */
+  async update(
+    user: { id: string; role: string },
+    id: string,
+    dto: UpdateCandidateDto,
+  ) {
+    const existing = await this.findScoped(user, id);
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.employeeCode !== undefined)
+      data.employeeCode = dto.employeeCode ?? null;
+    if (dto.mobile !== undefined) data.mobile = dto.mobile;
+    if (dto.gender !== undefined) data.gender = dto.gender;
+    if (dto.age !== undefined) data.age = dto.age;
+    if (dto.candidateType !== undefined)
+      data.candidateType = dto.candidateType;
+    if (dto.doj !== undefined) data.doj = new Date(dto.doj);
+    if (dto.pincode !== undefined) data.pincode = dto.pincode;
+    if (dto.email !== undefined) data.email = dto.email ?? null;
+    if (dto.panNumber !== undefined) data.panNumber = dto.panNumber ?? null;
+
+    if (dto.appointmentDate !== undefined) {
+      const next = this.toUtcDay(dto.appointmentDate);
+      const current = existing.appointmentDate
+        ? this.toUtcDay(existing.appointmentDate)
+        : null;
+      // Only re-validate "must be in the future" when the date truly changes.
+      data.appointmentDate =
+        current && current.getTime() === next.getTime()
+          ? current
+          : this.parseFutureAppointment(dto.appointmentDate);
+    }
+
+    return this.prisma.candidate.update({
+      where: { id },
+      data,
+      include: CANDIDATE_INCLUDE,
+    });
+  }
+
+  /**
+   * Soft-delete a single candidate and cascade to its bookings and reports so
+   * nothing dangles in the admin/client views (both filter on `deletedAt`).
+   * The candidate is also marked inactive.
+   */
+  async softDelete(user: { id: string; role: string }, id: string) {
+    await this.findScoped(user, id);
+    await this.cascadeSoftDelete(user.id, [id]);
+    return { id };
+  }
+
+  /**
+   * Soft-delete many candidates at once. Ids outside the caller's scope (a
+   * USER's non-owned candidates) or already deleted are silently skipped and
+   * returned so the UI can surface a partial-success message.
+   */
+  async bulkSoftDelete(
+    user: { id: string; role: string },
+    ids: string[],
+  ): Promise<{ deleted: number; skipped: string[] }> {
+    const unique = [...new Set(ids)];
+    const where: any = { id: { in: unique }, deletedAt: null };
+    if (user.role !== 'ADMIN') where.clientId = user.id;
+
+    const found = await this.prisma.candidate.findMany({
+      where,
+      select: { id: true },
+    });
+    const allowed = found.map((c) => c.id);
+    const skipped = unique.filter((id) => !allowed.includes(id));
+
+    if (allowed.length > 0) {
+      await this.cascadeSoftDelete(user.id, allowed);
+    }
+    return { deleted: allowed.length, skipped };
+  }
+
+  /**
+   * Mark the given candidates (and their non-deleted bookings + reports) as
+   * deleted in a single transaction. Caller is responsible for scope checks.
+   */
+  private async cascadeSoftDelete(deletedBy: string, ids: string[]) {
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.candidate.updateMany({
+        where: { id: { in: ids }, deletedAt: null },
+        data: { deletedAt: now, deletedBy, isActive: false },
+      });
+      await tx.booking.updateMany({
+        where: { candidateId: { in: ids }, deletedAt: null },
+        data: { deletedAt: now, deletedBy },
+      });
+      await tx.report.updateMany({
+        where: { candidateId: { in: ids }, deletedAt: null },
+        data: { deletedAt: now, deletedBy },
+      });
+    });
+  }
+
+  /** Normalise a date(-ish) value to UTC midnight for day-level comparison. */
+  private toUtcDay(value: string | Date): Date {
+    const date = new Date(value);
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
   }
 
   async getTemplate(user: { id: string; role: string }): Promise<string> {

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -25,6 +26,8 @@ import {
 } from '@nestjs/swagger';
 import { CandidatesService } from './candidates.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { UpdateCandidateDto } from './dto/update-candidate.dto';
+import { BulkDeleteCandidatesDto } from './dto/bulk-delete-candidates.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -128,6 +131,37 @@ export class CandidatesController {
     @Body('isApproved') isApproved: boolean,
   ) {
     return this.candidatesService.setApproval(id, isApproved);
+  }
+
+  @Post('bulk-delete')
+  @ApiOperation({
+    summary:
+      'Soft-delete many candidates (cascades to their bookings & reports)',
+  })
+  @ApiResponse({ status: 201, description: '{ deleted, skipped }' })
+  bulkDelete(@Body() dto: BulkDeleteCandidatesDto, @CurrentUser() user: any) {
+    return this.candidatesService.bulkSoftDelete(user, dto.ids);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update a candidate (admin only)' })
+  @ApiResponse({ status: 200, description: 'Updated candidate' })
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCandidateDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.candidatesService.update(user, id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Soft-delete a candidate (cascades to bookings & reports)',
+  })
+  @ApiResponse({ status: 200, description: 'Soft-deleted candidate id' })
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.candidatesService.softDelete(user, id);
   }
 
   @Get('template')
