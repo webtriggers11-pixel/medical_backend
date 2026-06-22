@@ -134,6 +134,7 @@ export class CandidatesController {
   }
 
   @Post('bulk-delete')
+  @Roles(Role.ADMIN)
   @ApiOperation({
     summary:
       'Soft-delete many candidates (cascades to their bookings & reports)',
@@ -156,6 +157,7 @@ export class CandidatesController {
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @ApiOperation({
     summary: 'Soft-delete a candidate (cascades to bookings & reports)',
   })
