@@ -57,6 +57,26 @@ export class CandidatesController {
   @ApiQuery({ name: 'clientId', required: false })
   @ApiQuery({ name: 'storeId', required: false })
   @ApiQuery({
+    name: 'schedFrom',
+    required: false,
+    description: 'Lower bound (ISO) for booking scheduled date',
+  })
+  @ApiQuery({
+    name: 'schedTo',
+    required: false,
+    description: 'Upper bound (ISO) for booking scheduled date',
+  })
+  @ApiQuery({
+    name: 'uploadFrom',
+    required: false,
+    description: 'Lower bound (ISO) for report uploaded date',
+  })
+  @ApiQuery({
+    name: 'uploadTo',
+    required: false,
+    description: 'Upper bound (ISO) for report uploaded date',
+  })
+  @ApiQuery({
     name: 'available',
     required: false,
     description:
@@ -86,6 +106,10 @@ export class CandidatesController {
     @Query('status') status?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('schedFrom') schedFrom?: string,
+    @Query('schedTo') schedTo?: string,
+    @Query('uploadFrom') uploadFrom?: string,
+    @Query('uploadTo') uploadTo?: string,
   ) {
     const rel = (withParam ?? '').split(',').map((s) => s.trim());
     return this.candidatesService.findAll(
@@ -101,6 +125,10 @@ export class CandidatesController {
         statusBucket: status,
         appointmentFrom: from,
         appointmentTo: to,
+        scheduleFrom: schedFrom,
+        scheduleTo: schedTo,
+        uploadFrom,
+        uploadTo,
         availableForBooking: available === 'true',
         search,
         candidateType: type,
