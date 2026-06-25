@@ -65,6 +65,10 @@ export class CandidatesService {
       statusBucket?: string;
       appointmentFrom?: string;
       appointmentTo?: string;
+      scheduleFrom?: string;
+      scheduleTo?: string;
+      uploadFrom?: string;
+      uploadTo?: string;
       availableForBooking?: boolean;
       search?: string;
       candidateType?: string;
@@ -96,6 +100,15 @@ export class CandidatesService {
         where.appointmentDate.gte = new Date(filters.appointmentFrom);
       if (filters.appointmentTo)
         where.appointmentDate.lte = new Date(filters.appointmentTo);
+    }
+
+    // Report uploaded-date range (client Reports page filter) — candidates with
+    // a non-deleted report uploaded within the window.
+    if (filters.uploadFrom || filters.uploadTo) {
+      const uploadedAt: any = {};
+      if (filters.uploadFrom) uploadedAt.gte = new Date(filters.uploadFrom);
+      if (filters.uploadTo) uploadedAt.lte = new Date(filters.uploadTo);
+      where.reports = { some: { uploadedAt, deletedAt: null } };
     }
 
     // Booking-relation filters (lab + status bucket). A candidate has at most
@@ -141,6 +154,24 @@ export class CandidatesService {
           },
         });
         break;
+    }
+    // Schedule-date range filter — candidates whose latest active booking is
+    // scheduled within the window. Mirrors the lab/status booking conditions so
+    // it combines with them via `where.AND`.
+    if (filters.scheduleFrom || filters.scheduleTo) {
+      const scheduledDate: any = {};
+      if (filters.scheduleFrom)
+        scheduledDate.gte = new Date(filters.scheduleFrom);
+      if (filters.scheduleTo) scheduledDate.lte = new Date(filters.scheduleTo);
+      bookingConds.push({
+        bookings: {
+          some: {
+            scheduledDate,
+            status: { notIn: ['CANCELLED'] },
+            deletedAt: null,
+          },
+        },
+      });
     }
     if (bookingConds.length) where.AND = bookingConds;
     // Free-text search across name / employee code / email / mobile.
