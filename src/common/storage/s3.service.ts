@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { extname } from 'path';
 import { randomBytes } from 'crypto';
+import { Readable } from 'stream';
 import {
   S3Client,
   PutObjectCommand,
@@ -88,6 +89,15 @@ export class S3Service {
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: ttlSeconds ?? this.ttl },
     );
+  }
+
+  /** Open a readable stream for a stored object (used for ZIP bundling). */
+  async getObjectStream(key: string): Promise<Readable> {
+    const client = this.ensure();
+    const res = await client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    return res.Body as Readable;
   }
 
   async delete(key: string): Promise<void> {

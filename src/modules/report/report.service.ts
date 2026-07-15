@@ -14,6 +14,7 @@ import {
   REPORTS_PUBLIC_PREFIX,
 } from '../../common/storage/storage.constants';
 import { Role } from '../../common/enums/role.enum';
+import { CandidatesService } from '../candidates/candidates.service';
 import {
   buildPaginated,
   resolvePagination,
@@ -25,6 +26,28 @@ export interface UploadedDescriptor {
   fileKey?: string;
   fileName: string;
   fileSize: number;
+}
+
+/** Minimal candidate shape read while flattening report files for a ZIP. */
+interface ZipCandidate {
+  name?: string | null;
+  employeeCode?: string | null;
+  reports?: {
+    uploadedAt?: string | Date | null;
+    files?: {
+      fileKey?: string | null;
+      fileUrl?: string | null;
+      fileName: string;
+    }[];
+  }[];
+}
+
+/** A single file destined for the bulk ZIP. */
+interface ZipFile {
+  fileKey: string | null;
+  fileUrl: string | null;
+  fileName: string;
+  candidateLabel: string;
 }
 
 const REPORT_INCLUDE = {
@@ -47,6 +70,7 @@ export class ReportService {
   constructor(
     private prisma: PrismaService,
     private s3: S3Service,
+    private candidates: CandidatesService,
   ) {}
 
   /** Best-effort removal of a stored object from S3 (never throws). */
@@ -110,6 +134,101 @@ export class ReportService {
     }
     if (file.fileUrl) return { url: file.fileUrl }; // legacy disk path
     throw new BadRequestException('File has no stored location');
+  }
+
+  /**
+   * Resolve the set of report files to bundle into a ZIP. Two modes:
+   *  - `fileIds`: explicit row selection — files are scope-checked so a USER
+   *    only ever gets their own candidates' files (out-of-scope ids dropped).
+   *  - `filters`: "download all filtered" — re-runs the candidate list query
+   *    (already client-scoped) and flattens every matching report file, honing
+   *    to the uploaded-date window when one is set.
+   * Returns lightweight descriptors carrying enough to stream + name each entry.
+   */
+  async resolveZipFiles(
+    dto: {
+      fileIds?: string[];
+      filters?: {
+        storeId?: string;
+        storeStatus?: string;
+        status?: string;
+        uploadFrom?: string;
+        uploadTo?: string;
+        search?: string;
+      };
+    },
+    user: { id: string; role: string },
+  ): Promise<ZipFile[]> {
+    const isAdmin = user.role === 'ADMIN';
+
+    if (dto.fileIds?.length) {
+      const files = await this.prisma.reportFile.findMany({
+        where: { id: { in: dto.fileIds }, report: { deletedAt: null } },
+        include: {
+          report: {
+            include: {
+              candidate: {
+                select: { clientId: true, name: true, employeeCode: true },
+              },
+            },
+          },
+        },
+      });
+      return files
+        .filter((f) => isAdmin || f.report?.candidate?.clientId === user.id)
+        .map((f) => ({
+          fileKey: f.fileKey,
+          fileUrl: f.fileUrl,
+          fileName: f.fileName,
+          candidateLabel:
+            f.report?.candidate?.name ??
+            f.report?.candidate?.employeeCode ??
+            'candidate',
+        }));
+    }
+
+    const filters = dto.filters ?? {};
+    const from = filters.uploadFrom ? new Date(filters.uploadFrom) : null;
+    const to = filters.uploadTo ? new Date(filters.uploadTo) : null;
+
+    // findAll (no pagination) returns the client-scoped candidate array with
+    // their non-deleted reports + files included.
+    const candidates = (await this.candidates.findAll(
+      user,
+      {
+        storeId: filters.storeId,
+        storeStatus: filters.storeStatus,
+        statusBucket: filters.status,
+        uploadFrom: filters.uploadFrom,
+        uploadTo: filters.uploadTo,
+        search: filters.search,
+      },
+      undefined,
+      { reports: true },
+    )) as unknown as ZipCandidate[];
+
+    const out: ZipFile[] = [];
+    for (const c of candidates) {
+      const label: string = c.name ?? c.employeeCode ?? 'candidate';
+      for (const r of c.reports ?? []) {
+        // Honour the uploaded-date window on the report itself when set.
+        if (from || to) {
+          const uploaded = r.uploadedAt ? new Date(r.uploadedAt) : null;
+          if (!uploaded) continue;
+          if (from && uploaded < from) continue;
+          if (to && uploaded > to) continue;
+        }
+        for (const f of r.files ?? []) {
+          out.push({
+            fileKey: f.fileKey ?? null,
+            fileUrl: f.fileUrl ?? null,
+            fileName: f.fileName,
+            candidateLabel: label,
+          });
+        }
+      }
+    }
+    return out;
   }
 
   async create(dto: CreateReportDto, userId: string) {
