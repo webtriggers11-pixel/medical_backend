@@ -57,6 +57,11 @@ export class CandidatesController {
   @ApiQuery({ name: 'clientId', required: false })
   @ApiQuery({ name: 'storeId', required: false })
   @ApiQuery({
+    name: 'storeStatus',
+    required: false,
+    description: 'Filter by the store status (ACTIVE | INACTIVE)',
+  })
+  @ApiQuery({
     name: 'schedFrom',
     required: false,
     description: 'Lower bound (ISO) for booking scheduled date',
@@ -93,6 +98,7 @@ export class CandidatesController {
     @CurrentUser() user: any,
     @Query('clientId') clientId?: string,
     @Query('storeId') storeId?: string,
+    @Query('storeStatus') storeStatus?: string,
     @Query('available') available?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
@@ -117,6 +123,7 @@ export class CandidatesController {
       {
         clientId,
         storeId,
+        storeStatus,
         zoneId,
         cityId,
         labId,

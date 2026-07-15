@@ -58,6 +58,7 @@ export class CandidatesService {
     filters: {
       clientId?: string;
       storeId?: string;
+      storeStatus?: string;
       zoneId?: string;
       cityId?: string;
       labId?: string;
@@ -87,10 +88,11 @@ export class CandidatesService {
     if (filters.candidateType) where.candidateType = filters.candidateType;
     if (filters.isApproved !== undefined) where.isApproved = filters.isApproved;
 
-    // Store hierarchy (zone / city) via the store relation.
+    // Store hierarchy (zone / city) + store status via the store relation.
     const storeFilter: any = {};
     if (filters.cityId) storeFilter.cityId = filters.cityId;
     if (filters.zoneId) storeFilter.city = { is: { zoneId: filters.zoneId } };
+    if (filters.storeStatus) storeFilter.status = filters.storeStatus;
     if (Object.keys(storeFilter).length) where.store = { is: storeFilter };
 
     // Appointment-date range (dashboard date filter).
@@ -416,8 +418,7 @@ export class CandidatesService {
     if (dto.mobile !== undefined) data.mobile = dto.mobile;
     if (dto.gender !== undefined) data.gender = dto.gender;
     if (dto.age !== undefined) data.age = dto.age;
-    if (dto.candidateType !== undefined)
-      data.candidateType = dto.candidateType;
+    if (dto.candidateType !== undefined) data.candidateType = dto.candidateType;
     if (dto.doj !== undefined) data.doj = new Date(dto.doj);
     if (dto.pincode !== undefined) data.pincode = dto.pincode;
     if (dto.email !== undefined) data.email = dto.email ?? null;
