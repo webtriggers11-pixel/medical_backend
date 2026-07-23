@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import type { Readable } from 'stream';
 import { existsSync } from 'fs';
 import { basename, join } from 'path';
 import archiver from 'archiver';
@@ -100,8 +101,20 @@ export class ReportController {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename="reports.zip"');
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    // Report files (PDF/JPEG) are already compressed — STORE instead of
+    // deflate level 9 so large bundles stream fast instead of burning CPU.
+    const archive = archiver('zip', { store: true });
     archive.on('error', (err) => res.destroy(err));
+    // If the client disconnects mid-download, stop pulling from S3 so we
+    // don't leak open GetObject sockets (the SDK pool caps at 50 — leaked
+    // streams permanently clog it and hang every later download).
+    let aborted = false;
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        aborted = true;
+        archive.destroy();
+      }
+    });
     archive.pipe(res);
 
     // Group files under a per-candidate folder, de-duplicating entry names so
@@ -125,13 +138,42 @@ export class ReportController {
     };
 
     for (const f of files) {
+      if (aborted) return;
       const entryName = uniqueName(
         safeSegment(f.candidateLabel),
         safeSegment(f.fileName),
       );
       if (f.fileKey && isS3Storage()) {
-        const stream = await this.s3.getObjectStream(f.fileKey);
+        let stream: Readable;
+        try {
+          stream = await this.s3.getObjectStream(f.fileKey);
+        } catch {
+          continue; // object missing/unreadable — skip, keep the rest
+        }
+        if (aborted) {
+          stream.destroy();
+          return;
+        }
+        // Serialise: wait until archiver fully consumes this entry before
+        // opening the next S3 stream. Opening streams ahead of the archiver
+        // exhausts the SDK socket pool and S3 resets the idle connections.
+        const consumed = new Promise<void>((resolve) => {
+          const done = () => {
+            archive.removeListener('entry', done);
+            archive.removeListener('error', done);
+            archive.removeListener('close', done);
+            resolve();
+          };
+          archive.once('entry', done); // entry fully written
+          archive.once('error', done); // archive failed
+          archive.once('close', done); // archive destroyed (client aborted)
+        });
         archive.append(stream, { name: entryName });
+        await consumed;
+        if (aborted) {
+          stream.destroy();
+          return;
+        }
       } else if (f.fileUrl) {
         // Legacy disk driver — resolve the physical path under /uploads/reports.
         const diskPath = join(UPLOAD_ROOT, REPORTS_SUBDIR, basename(f.fileUrl));
@@ -139,7 +181,7 @@ export class ReportController {
       }
     }
 
-    await archive.finalize();
+    if (!aborted) await archive.finalize();
   }
 
   @Post()
