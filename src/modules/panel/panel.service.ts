@@ -121,7 +121,9 @@ export class PanelService {
       where.OR = [
         { name: { contains: q, mode: 'insensitive' as const } },
         { panelId: { contains: q } },
-        { lab: { is: { name: { contains: q, mode: 'insensitive' as const } } } },
+        {
+          lab: { is: { name: { contains: q, mode: 'insensitive' as const } } },
+        },
         {
           panelTests: {
             some: {

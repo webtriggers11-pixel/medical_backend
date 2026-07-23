@@ -35,8 +35,12 @@ describe('CandidatesService — list filters', () => {
     expect(where.clientId).toBe('client-1'); // USER scope preserved
     const cond = scheduleCond(where);
     expect(cond).toBeDefined();
-    expect(cond.bookings.some.scheduledDate.gte).toEqual(new Date('2026-06-01'));
-    expect(cond.bookings.some.scheduledDate.lte).toEqual(new Date('2026-06-30'));
+    expect(cond.bookings.some.scheduledDate.gte).toEqual(
+      new Date('2026-06-01'),
+    );
+    expect(cond.bookings.some.scheduledDate.lte).toEqual(
+      new Date('2026-06-30'),
+    );
     expect(cond.bookings.some.status).toEqual({ notIn: ['CANCELLED'] });
     expect(cond.bookings.some.deletedAt).toBeNull();
   });
@@ -47,19 +51,27 @@ describe('CandidatesService — list filters', () => {
       { scheduleFrom: '2026-06-01' },
     );
     const cond = scheduleCond(whereOf());
-    expect(cond.bookings.some.scheduledDate.gte).toEqual(new Date('2026-06-01'));
+    expect(cond.bookings.some.scheduledDate.gte).toEqual(
+      new Date('2026-06-01'),
+    );
     expect(cond.bookings.some.scheduledDate.lte).toBeUndefined();
   });
 
   it('composes schedule-date with store and status-bucket filters', async () => {
     await service.findAll(
       { id: 'c', role: 'USER' },
-      { storeId: 'store-9', statusBucket: 'SCHEDULE', scheduleFrom: '2026-06-01' },
+      {
+        storeId: 'store-9',
+        statusBucket: 'SCHEDULE',
+        scheduleFrom: '2026-06-01',
+      },
     );
     const where = whereOf();
     expect(where.storeId).toBe('store-9');
     const conds = where.AND as any[];
-    expect(conds.some((c) => c?.bookings?.some?.status === 'SCHEDULED')).toBe(true);
+    expect(conds.some((c) => c?.bookings?.some?.status === 'SCHEDULED')).toBe(
+      true,
+    );
     expect(conds.some((c) => c?.bookings?.some?.scheduledDate)).toBe(true);
   });
 
